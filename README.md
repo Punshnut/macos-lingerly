@@ -16,6 +16,10 @@ Lingerly is a gentle macOS menu bar companion that helps you rest your eyes with
 </p>
 
 <p align="center">
+  <sub>first signed and notarised build will be added soon!</sub>
+</p>
+
+<p align="center">
   <img src="Media/Lingerly_Logo.png" alt="Lingerly logo" width="260">
 </p>
 
@@ -95,18 +99,11 @@ Lingerly is a gentle macOS menu bar companion that helps you rest your eyes with
 
 - **License:** MIT. Use it anywhere; just keep the notice.
 
-[Website](https://lingerly.app) (coming soon)
-
-## Get Lingerly
-
-- <a href="https://github.com/Punshnut/macos-lingerly/releases/latest">Download Lingerly for free</a> and enjoy automatic updates.
-- Current beta: `0.1.0b` (targeting `0.1.0`).
-
 ## Roadmap
 
 Here are a few improvements planned for upcoming releases:
-- **Smarter rhythms** - adaptive break timing based on real activity.
-- **Better overlays** - calmer visuals and richer accessibility options.
+- **Smarter rhythms** - adaptive break timing based on real activity
+- **Better overlays** - calmer visuals and richer accessibility options
 
 [Donate (Ko-Fi)](https://ko-fi.com/janfeuerbacher)
 

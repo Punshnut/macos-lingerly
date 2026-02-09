@@ -16,6 +16,7 @@ enum TimingSettingsKeys {
     static let mediaResetOnResume = "lingerly.media.reset.on.resume"
     static let resetOnUnlock = "lingerly.timer.reset.on.unlock"
     static let menuBarTimerEnabled = "lingerly.menu.timer.enabled"
+    static let overlayStyle = "lingerly.overlay.style"
 }
 
 /// Thin wrapper around UserDefaults for timing configuration.

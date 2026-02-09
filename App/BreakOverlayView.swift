@@ -15,6 +15,7 @@ struct BreakOverlayView: View {
     @AppStorage(TimingSettingsKeys.snoozeMinutes) private var snoozeMinutes = 1
     @AppStorage(TimingSettingsKeys.waterReminderEnabled) private var waterReminderEnabled = false
     @AppStorage(TimingSettingsKeys.freshAirReminderEnabled) private var freshAirReminderEnabled = false
+    @AppStorage(TimingSettingsKeys.overlayStyle) private var overlayStyleRaw = OverlayStyle.modernTahoe.rawValue
     @State private var backgroundVisible = false
     @State private var contentVisible = false
     @State private var showTitle = false
@@ -66,26 +67,32 @@ struct BreakOverlayView: View {
                 let maxTextWidth = max(proxy.size.width * 0.6, 320)
                 VStack(spacing: 18) {
                     VStack(spacing: 6) {
-                    ZStack {
-                        Text(String(localized: "Overlay Title"))
-                            .font(.system(size: 38, weight: .semibold, design: .serif))
-                            .foregroundStyle(Color.white.opacity(0.22))
-                            .offset(x: 0.6, y: 0.6)
-                            .blur(radius: 0.8)
-                        Text(String(localized: "Overlay Title"))
-                            .font(.system(size: 38, weight: .semibold, design: .serif))
-                            .foregroundStyle(Color.white.opacity(0.95))
+                        if overlayStyle == .classic {
+                            ZStack {
+                                Text(String(localized: "Overlay Title"))
+                                    .font(titleFont)
+                                    .foregroundStyle(Color.white.opacity(0.22))
+                                    .offset(x: 0.6, y: 0.6)
+                                    .blur(radius: 0.8)
+                                Text(String(localized: "Overlay Title"))
+                                    .font(titleFont)
+                                    .foregroundStyle(Color.white.opacity(0.95))
+                            }
+                            .shadow(color: Color.black.opacity(0.22), radius: 6, x: 0, y: 3)
+                        } else {
+                            Text(String(localized: "Overlay Title"))
+                                .font(titleFont)
+                                .foregroundStyle(Color.white.opacity(0.96))
+                        }
+                        Text(overlaySubtitle)
+                            .font(subtitleFont)
+                            .foregroundStyle(Color.white.opacity(0.78))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: maxTextWidth)
                     }
-                    .shadow(color: Color.black.opacity(0.22), radius: 6, x: 0, y: 3)
-                    Text(overlaySubtitle)
-                        .font(.title2)
-                        .foregroundStyle(Color.white.opacity(0.78))
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: maxTextWidth)
-                }
-                .opacity(showTitle ? 1 : 0)
-                .offset(y: showTitle ? 0 : 12)
-                .scaleEffect(showTitle ? 1 : 0.98)
+                    .opacity(showTitle ? 1 : 0)
+                    .offset(y: showTitle ? 0 : 12)
+                    .scaleEffect(showTitle ? 1 : 0.98)
 
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     let remainingSeconds = remainingSeconds(at: context.date)
@@ -93,10 +100,11 @@ struct BreakOverlayView: View {
                         Text(String(localized: "Overlay Time Left"))
                             .font(.headline)
                             .foregroundStyle(Color.white.opacity(0.72))
-                        Text(formattedRemaining(remainingSeconds))
-                            .font(.system(size: 44, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.96))
-                            .monospacedDigit()
+                        CountdownView(
+                            totalSeconds: remainingSeconds,
+                            font: countdownFont,
+                            overlayStyle: overlayStyle
+                        )
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("\(String(localized: "Overlay Time Left")) \(formattedRemaining(remainingSeconds))")
@@ -177,6 +185,37 @@ struct BreakOverlayView: View {
                 freshAirEnabled: freshAirReminderEnabled
             )
         )
+    }
+
+    private var overlayStyle: OverlayStyle {
+        OverlayStyle(rawValue: overlayStyleRaw) ?? .classic
+    }
+
+    private var titleFont: Font {
+        switch overlayStyle {
+        case .classic:
+            return .system(size: 38, weight: .semibold, design: .serif)
+        case .modernTahoe:
+            return .system(size: 36, weight: .semibold, design: .default)
+        }
+    }
+
+    private var subtitleFont: Font {
+        switch overlayStyle {
+        case .classic:
+            return .title2
+        case .modernTahoe:
+            return .system(size: 22, weight: .medium, design: .default)
+        }
+    }
+
+    private var countdownFont: Font {
+        switch overlayStyle {
+        case .classic:
+            return .system(size: 44, weight: .semibold, design: .serif)
+        case .modernTahoe:
+            return .system(size: 44, weight: .semibold, design: .rounded)
+        }
     }
 
     /// Calculates remaining break seconds at a given timestamp.
@@ -284,6 +323,93 @@ struct BreakOverlayView: View {
             }
         }
         _ = await (controlsFade.value, timerFade.value, titleFade.value, contentFade.value, backgroundFade.value)
+    }
+}
+
+private struct CountdownView: View {
+    let totalSeconds: Int
+    let font: Font
+    let overlayStyle: OverlayStyle
+
+    var body: some View {
+        let clampedSeconds = min(max(totalSeconds, 0), 3599)
+        let minutes = clampedSeconds / 60
+        let seconds = clampedSeconds % 60
+        let minuteText = "\(minutes)"
+        let secondText = String(format: "%02d", seconds)
+
+        HStack(spacing: 0) {
+            FixedWidthDigits(
+                text: minuteText,
+                placeholder: "59",
+                font: font,
+                overlayStyle: overlayStyle,
+                alignment: .trailing
+            )
+            colonText
+            FixedWidthDigits(
+                text: secondText,
+                placeholder: "59",
+                font: font,
+                overlayStyle: overlayStyle,
+                alignment: .leading
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var colonText: some View {
+        switch overlayStyle {
+        case .classic:
+            Text(":")
+                .font(font)
+                .foregroundStyle(Color.white.opacity(0.96))
+                .tracking(0.6)
+        case .modernTahoe:
+            Text(":")
+                .font(font)
+                .foregroundStyle(Color.white.opacity(0.96))
+        }
+    }
+}
+
+private struct FixedWidthDigits: View {
+    let text: String
+    let placeholder: String
+    let font: Font
+    let overlayStyle: OverlayStyle
+    let alignment: Alignment
+
+    var body: some View {
+        ZStack(alignment: alignment) {
+            placeholderText
+                .accessibilityHidden(true)
+            valueText
+        }
+    }
+
+    private var placeholderText: some View {
+        styledText(placeholder).opacity(0)
+    }
+
+    private var valueText: some View {
+        styledText(text)
+    }
+
+    @ViewBuilder
+    private func styledText(_ value: String) -> some View {
+        switch overlayStyle {
+        case .classic:
+            Text(value)
+                .font(font)
+                .foregroundStyle(Color.white.opacity(0.96))
+                .tracking(0.6)
+        case .modernTahoe:
+            Text(value)
+                .font(font)
+                .foregroundStyle(Color.white.opacity(0.96))
+                .monospacedDigit()
+        }
     }
 }
 

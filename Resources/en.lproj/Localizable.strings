@@ -209,6 +209,13 @@
 "settings.appearance.card.title" = "Menu Bar";
 "settings.appearance.card.subtitle" = "Menu bar options.";
 
+"settings.appearance.overlay.card.title" = "Fullscreen Overlay";
+"settings.appearance.overlay.card.subtitle" = "Customize the break screen.";
+"settings.appearance.overlay.style.title" = "Overlay style";
+"settings.appearance.overlay.style.subtitle" = "Choose the look for the fullscreen break.";
+"settings.appearance.overlay.style.option_classic" = "Classic";
+"settings.appearance.overlay.style.option_modern" = "Modern / Tahoe";
+
 "settings.custom_preset.title" = "Custom Timing";
 
 "settings.custom_preset.focus" = "Focus Length";
@@ -218,6 +225,7 @@
 "settings.custom_preset.hours" = "hr";
 
 "settings.custom_preset.minutes" = "min";
+"settings.custom_preset.seconds" = "sec";
 
 "settings.custom_preset.cancel" = "Cancel";
 

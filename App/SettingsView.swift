@@ -349,8 +349,8 @@ private struct BreakScheduleSettingsView: View {
     @State private var showingCustomPreset = false
     @State private var customFocusHours = 0
     @State private var customFocusMinutes = 20
-    @State private var customBreakHours = 0
     @State private var customBreakMinutes = 5
+    @State private var customBreakSeconds = 0
 
     var body: some View {
         SettingsScrollView(
@@ -419,16 +419,22 @@ private struct BreakScheduleSettingsView: View {
                 openCustomPreset()
             }
         }
+        .onChange(of: breakDurationSeconds) { newValue in
+            let clamped = clampBreakSeconds(newValue)
+            if clamped != newValue {
+                breakDurationSeconds = clamped
+            }
+        }
         .sheet(isPresented: $showingCustomPreset) {
             CustomPresetSheet(
                 focusHours: $customFocusHours,
                 focusMinutes: $customFocusMinutes,
-                breakHours: $customBreakHours,
-                breakMinutes: $customBreakMinutes,
-                onCancel: { showingCustomPreset = false },
-                onSave: {
-                    applyCustomPreset()
-                    showingCustomPreset = false
+                    breakMinutes: $customBreakMinutes,
+                    breakSeconds: $customBreakSeconds,
+                    onCancel: { showingCustomPreset = false },
+                    onSave: {
+                        applyCustomPreset()
+                        showingCustomPreset = false
                 }
             )
         }
@@ -457,30 +463,27 @@ private struct BreakScheduleSettingsView: View {
         customFocusHours = focusTotalMinutes / 60
         customFocusMinutes = focusTotalMinutes % 60
 
-        let breakTotalMinutes = max(1, (breakDurationSeconds + 59) / 60)
-        customBreakHours = breakTotalMinutes / 60
-        customBreakMinutes = breakTotalMinutes % 60
+        let clampedBreakSeconds = clampBreakSeconds(breakDurationSeconds)
+        customBreakMinutes = clampedBreakSeconds / 60
+        customBreakSeconds = clampedBreakSeconds % 60
     }
 
     private func applyCustomPreset() {
         let focusTotalMinutes = max(1, customFocusHours * 60 + customFocusMinutes)
-        let breakTotalMinutes = max(1, customBreakHours * 60 + customBreakMinutes)
+        let breakTotalSeconds = max(1, customBreakMinutes * 60 + customBreakSeconds)
         reminderIntervalMinutes = focusTotalMinutes
-        breakDurationSeconds = breakTotalMinutes * 60
+        breakDurationSeconds = clampBreakSeconds(breakTotalSeconds)
     }
 
     private func formattedBreakDuration(_ seconds: Int) -> String {
-        let totalSeconds = max(seconds, 0)
-        let totalMinutes = max(1, (totalSeconds + 59) / 60)
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        if hours > 0 && minutes > 0 {
-            return String(format: "%d hr %d min", hours, minutes)
-        }
-        if hours > 0 {
-            return String(format: "%d hr", hours)
-        }
-        return String(format: "%d min", minutes)
+        let totalSeconds = clampBreakSeconds(seconds)
+        let minutes = totalSeconds / 60
+        let secs = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, secs)
+    }
+
+    private func clampBreakSeconds(_ seconds: Int) -> Int {
+        min(max(seconds, 1), 3599)
     }
 
     private var snoozeMinutesBinding: Binding<Double> {
@@ -494,8 +497,8 @@ private struct BreakScheduleSettingsView: View {
 private struct CustomPresetSheet: View {
     @Binding var focusHours: Int
     @Binding var focusMinutes: Int
-    @Binding var breakHours: Int
     @Binding var breakMinutes: Int
+    @Binding var breakSeconds: Int
     let onCancel: () -> Void
     let onSave: () -> Void
 
@@ -513,9 +516,9 @@ private struct CustomPresetSheet: View {
 
             durationRow(
                 title: l("settings.custom_preset.break"),
-                hours: $breakHours,
                 minutes: $breakMinutes,
-                maxHours: 4
+                seconds: $breakSeconds,
+                maxMinutes: 59
             )
 
             HStack(spacing: 12) {
@@ -558,6 +561,42 @@ private struct CustomPresetSheet: View {
                     step: 1
                 ) {
                     Text("\(minutes.wrappedValue) \(l("settings.custom_preset.minutes"))")
+                        .frame(width: 70, alignment: .leading)
+                }
+                .frame(width: 140, alignment: .leading)
+                .controlSize(.small)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func durationRow(
+        title: String,
+        minutes: Binding<Int>,
+        seconds: Binding<Int>,
+        maxMinutes: Int
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.headline)
+            HStack(spacing: 12) {
+                Stepper(
+                    value: minutes,
+                    in: 0...maxMinutes,
+                    step: 1
+                ) {
+                    Text("\(minutes.wrappedValue) \(l("settings.custom_preset.minutes"))")
+                        .frame(width: 70, alignment: .leading)
+                }
+                .frame(width: 140, alignment: .leading)
+                .controlSize(.small)
+
+                Stepper(
+                    value: seconds,
+                    in: 0...59,
+                    step: 1
+                ) {
+                    Text("\(seconds.wrappedValue) \(l("settings.custom_preset.seconds"))")
                         .frame(width: 70, alignment: .leading)
                 }
                 .frame(width: 140, alignment: .leading)
@@ -750,6 +789,7 @@ private struct WellnessSettingsView: View {
 
 private struct AppearanceSettingsView: View {
     @AppStorage(TimingSettingsKeys.menuBarTimerEnabled) private var menuBarTimerEnabled = false
+    @AppStorage(TimingSettingsKeys.overlayStyle) private var overlayStyleRaw = OverlayStyle.modernTahoe.rawValue
 
     var body: some View {
         SettingsScrollView(
@@ -764,6 +804,23 @@ private struct AppearanceSettingsView: View {
                     badge: l("settings.badge.beta"),
                     isOn: $menuBarTimerEnabled
                 )
+            }
+
+            SettingsCard(l("settings.appearance.overlay.card.title"), subtitle: l("settings.appearance.overlay.card.subtitle")) {
+                SettingsRow(
+                    icon: "rectangle.inset.filled.on.rectangle",
+                    title: l("settings.appearance.overlay.style.title"),
+                    subtitle: l("settings.appearance.overlay.style.subtitle"),
+                    badge: l("settings.badge.beta")
+                ) {
+                    Picker("", selection: $overlayStyleRaw) {
+                        Text(l("settings.appearance.overlay.style.option_classic")).tag(OverlayStyle.classic.rawValue)
+                        Text(l("settings.appearance.overlay.style.option_modern")).tag(OverlayStyle.modernTahoe.rawValue)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(maxWidth: 260)
+                }
             }
 
             SettingsCard(l("settings.placeholder.card.title")) {
@@ -1006,12 +1063,14 @@ private struct SettingsRow<Accessory: View>: View {
     let icon: String
     let title: String
     let subtitle: String
+    var badge: String? = nil
     @ViewBuilder let accessory: Accessory
 
-    init(icon: String, title: String, subtitle: String, @ViewBuilder accessory: () -> Accessory) {
+    init(icon: String, title: String, subtitle: String, badge: String? = nil, @ViewBuilder accessory: () -> Accessory) {
         self.icon = icon
         self.title = title
         self.subtitle = subtitle
+        self.badge = badge
         self.accessory = accessory()
     }
 
@@ -1019,8 +1078,20 @@ private struct SettingsRow<Accessory: View>: View {
         HStack(alignment: .center, spacing: 14) {
             SettingsIcon(systemName: icon)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.callout.weight(.semibold))
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(title)
+                        .font(.callout.weight(.semibold))
+                    if let badge {
+                        Text(badge)
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule().fill(Color.primary.opacity(0.08))
+                            )
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
