@@ -1,0 +1,128 @@
+import Foundation
+
+/// UserDefaults keys for timing configuration and reminders.
+enum TimingSettingsKeys {
+    static let intervalMinutes = "lingerly.reminderIntervalMinutes"
+    static let breakDurationSeconds = "lingerly.breakDurationSeconds"
+    static let modeIntervalEnabled = "lingerly.timing.mode.interval"
+    static let modeActiveEnabled = "lingerly.timing.mode.active"
+    static let modeScheduleEnabled = "lingerly.timing.mode.schedule"
+    static let scheduleTimes = "lingerly.timing.schedule.times"
+    static let presetId = "lingerly.timing.preset.id"
+    static let waterReminderEnabled = "lingerly.reminder.water.enabled"
+    static let freshAirReminderEnabled = "lingerly.reminder.freshAir.enabled"
+    static let snoozeMinutes = "lingerly.snooze.duration.minutes"
+    static let mediaPauseEnabled = "lingerly.media.pause.enabled"
+    static let mediaResetOnResume = "lingerly.media.reset.on.resume"
+    static let resetOnUnlock = "lingerly.timer.reset.on.unlock"
+    static let menuBarTimerEnabled = "lingerly.menu.timer.enabled"
+}
+
+/// Thin wrapper around UserDefaults for timing configuration.
+final class TimingSettingsStore {
+    private let defaults: UserDefaults
+
+    /// Creates a settings store backed by the provided defaults.
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    /// Interval minutes for break reminders.
+    var intervalMinutes: Int {
+        get { value(forKey: TimingSettingsKeys.intervalMinutes, defaultValue: 20) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.intervalMinutes) }
+    }
+
+    /// Break duration in seconds.
+    var breakDurationSeconds: Int {
+        get { value(forKey: TimingSettingsKeys.breakDurationSeconds, defaultValue: 20) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.breakDurationSeconds) }
+    }
+
+    /// Whether the interval timer mode is enabled.
+    var modeIntervalEnabled: Bool {
+        get { bool(forKey: TimingSettingsKeys.modeIntervalEnabled, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.modeIntervalEnabled) }
+    }
+
+    /// Whether active-time mode is enabled.
+    var modeActiveEnabled: Bool {
+        get { bool(forKey: TimingSettingsKeys.modeActiveEnabled, defaultValue: true) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.modeActiveEnabled) }
+    }
+
+    /// Whether schedule-based reminders are enabled.
+    var modeScheduleEnabled: Bool {
+        get { bool(forKey: TimingSettingsKeys.modeScheduleEnabled, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.modeScheduleEnabled) }
+    }
+
+    /// Whether timing pauses while media is playing.
+    var mediaPauseEnabled: Bool {
+        get { bool(forKey: TimingSettingsKeys.mediaPauseEnabled, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.mediaPauseEnabled) }
+    }
+
+    /// Whether the timer resets when media playback ends.
+    var mediaResetOnResume: Bool {
+        get { bool(forKey: TimingSettingsKeys.mediaResetOnResume, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.mediaResetOnResume) }
+    }
+
+    /// Whether the timer resets when the user unlocks the Mac.
+    var resetOnUnlock: Bool {
+        get { bool(forKey: TimingSettingsKeys.resetOnUnlock, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.resetOnUnlock) }
+    }
+
+    /// Whether to show the countdown in the menu bar title.
+    var menuBarTimerEnabled: Bool {
+        get { bool(forKey: TimingSettingsKeys.menuBarTimerEnabled, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.menuBarTimerEnabled) }
+    }
+
+    /// Times of day to trigger scheduled breaks.
+    var scheduleTimes: [ScheduleTime] {
+        get {
+            let raw = defaults.stringArray(forKey: TimingSettingsKeys.scheduleTimes) ?? []
+            return raw.compactMap { ScheduleTime(string: $0) }
+        }
+        set {
+            defaults.set(newValue.map { $0.stringValue }, forKey: TimingSettingsKeys.scheduleTimes)
+        }
+    }
+
+    /// Currently selected preset id.
+    var presetId: String {
+        get { defaults.string(forKey: TimingSettingsKeys.presetId) ?? "20-20-20" }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.presetId) }
+    }
+
+    /// Produces the combined timing modes for the current settings.
+    func timingModes() -> TimingModes {
+        var modes: TimingModes = []
+        if modeIntervalEnabled { modes.insert(.interval) }
+        if modeActiveEnabled { modes.insert(.activeTime) }
+        if modeScheduleEnabled { modes.insert(.schedule) }
+        return modes
+    }
+
+    /// Applies a preset and updates user defaults.
+    func applyPreset(_ preset: TimingPreset) {
+        intervalMinutes = preset.intervalMinutes
+        breakDurationSeconds = preset.breakDurationSeconds
+        presetId = preset.id
+    }
+
+    /// Reads an integer with a fallback when no value exists.
+    private func value(forKey key: String, defaultValue: Int) -> Int {
+        if defaults.object(forKey: key) == nil { return defaultValue }
+        return defaults.integer(forKey: key)
+    }
+
+    /// Reads a boolean with a fallback when no value exists.
+    private func bool(forKey key: String, defaultValue: Bool) -> Bool {
+        if defaults.object(forKey: key) == nil { return defaultValue }
+        return defaults.bool(forKey: key)
+    }
+}
