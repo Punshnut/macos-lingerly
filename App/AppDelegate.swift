@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var menuUpdateTimer: DispatchSourceTimer?
+    private var isMenuOpen = false
 
     /// Boots the menu bar UI and starts the timing engine.
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -260,10 +261,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Updates the countdown label in the status menu.
     private func updateCountdownTitle() {
         let title = menuCountdownTitle(at: Date())
-        countdownItem?.title = title
-        countdownLabel?.stringValue = title
-        if let item = countdownItem {
-            statusItem?.menu?.itemChanged(item)
+        if isMenuOpen {
+            countdownItem?.title = title
+            countdownLabel?.stringValue = title
+            if let item = countdownItem {
+                statusItem?.menu?.itemChanged(item)
+            }
         }
         statusItem?.button?.title = menuBarCountdownTitle(from: title)
         statusItem?.button?.image = appState.currentIconImage()
@@ -329,14 +332,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuWillOpen(_ menu: NSMenu) {
+        isMenuOpen = true
         clearFooterKeyEquivalents()
         updateCountdownTitle()
         startMenuUpdateTimer()
     }
 
     func menuDidClose(_ menu: NSMenu) {
+        isMenuOpen = false
         updateCountdownTitle()
-        stopMenuUpdateTimer()
     }
 
     private func stopMenuUpdateTimer() {
