@@ -141,8 +141,8 @@
 "settings.general.current_cycle.subtitle" = "Shows the focus and break lengths in use.";
 "settings.general.current_cycle.focus" = "%d min focus";
 "settings.general.current_cycle.break" = "%@ break";
-"settings.wellness.card.title" = "Hydration";
-"settings.wellness.card.subtitle" = "Gentle nudges to drink water.";
+"settings.wellness.card.title" = "General reminders";
+"settings.wellness.card.subtitle" = "Helpful reminders for daily wellbeing; more types will be added soon.";
 "settings.wellness.hydration.title" = "Hydration reminder";
 "settings.wellness.hydration.subtitle" = "Shows a gentle prompt to drink water between breaks.";
 "settings.media.card.title" = "Media Playback";

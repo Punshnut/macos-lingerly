@@ -22,6 +22,7 @@ Packages/
 .venv/
 tmp.iconset
 Lingerly.xcworkspace/
+.cache/
 
 # Local development tooling metadata
 .vscode/
