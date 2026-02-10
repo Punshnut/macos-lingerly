@@ -178,7 +178,6 @@ final class AppStateController {
     func resetTimer() {
         guard isRunning else { return }
         clearSnooze()
-        isManuallyPaused = false
         engine.resetCycle()
         overlayController.hide()
         onStateChange?(state)
