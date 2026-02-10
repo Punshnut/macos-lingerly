@@ -11,7 +11,7 @@ Lingerly is a gentle macOS menu bar companion that helps you rest your eyes with
 
 <p align="center">
     <a href="https://github.com/Punshnut/macos-lingerly/releases/latest">
-    <img src="https://img.shields.io/badge/Download-0.1.0b-blueviolet?style=for-the-badge" alt="Download 0.1.0b">
+    <img src="https://img.shields.io/badge/Download-0.2.1-blueviolet?style=for-the-badge" alt="Download 0.2.1">
   </a>
 </p>
 

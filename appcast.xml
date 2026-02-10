@@ -6,14 +6,14 @@
     <description>Release notes for Lingerly</description>
     <language>en</language>
     <item>
-      <title>Lingerly 1.0</title>
-      <sparkle:version>1.0</sparkle:version>
-      <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+      <title>Lingerly 0.2.1</title>
+      <sparkle:version>0.2.1</sparkle:version>
+      <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
       <pubDate>Mon, 09 Feb 2026 18:02:45 +0100</pubDate>
       <enclosure
         url="https://github.com/Punshnut/macos-lingerly/releases/latest/download/Lingerly.dmg"
-        sparkle:shortVersionString="1.0"
-        sparkle:version="1.0"
+        sparkle:shortVersionString="0.2.1"
+        sparkle:version="0.2.1"
         length="3331456"
         type="application/octet-stream"
         sparkle:edSignature="mUxZAeCXgsp8/bh+RrMKAx6N/CXVdIn/ZwqgKMLDbVJKtUTBlER3o36njtNdIUgUMas58+yNm73Ww2d3d62GBw==" />

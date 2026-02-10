@@ -1,19 +1,23 @@
 import AppKit
+import CoreAudio
 
 /// Observes system media playback status from common players.
-final class MediaPlaybackMonitor {
+final class MediaPlaybackMonitor: NSObject {
     enum Source: Hashable {
         case musicApp
         case iTunes
         case spotify
+        case systemAudio
     }
 
     var onChange: ((Bool) -> Void)?
 
     private(set) var isPlaying = false
     private var sourceStates: [Source: Bool] = [:]
+    private var systemAudioTimer: Timer?
 
-    init() {
+    override init() {
+        super.init()
         let distributed = DistributedNotificationCenter.default()
         distributed.addObserver(
             self,
@@ -33,9 +37,12 @@ final class MediaPlaybackMonitor {
             name: Notification.Name("com.spotify.client.PlaybackStateChanged"),
             object: nil
         )
+        startSystemAudioPolling()
     }
 
     deinit {
+        systemAudioTimer?.invalidate()
+        systemAudioTimer = nil
         NotificationCenter.default.removeObserver(self)
         DistributedNotificationCenter.default().removeObserver(self)
     }
@@ -75,5 +82,69 @@ final class MediaPlaybackMonitor {
             self.isPlaying = newValue
             onChange?(newValue)
         }
+    }
+
+    private func startSystemAudioPolling() {
+        let timer = Timer.scheduledTimer(
+            timeInterval: 1.5,
+            target: self,
+            selector: #selector(systemAudioTimerFired),
+            userInfo: nil,
+            repeats: true
+        )
+        systemAudioTimer = timer
+        let initialState = isDefaultOutputDeviceRunning()
+        setSource(.systemAudio, isPlaying: initialState)
+    }
+
+    @objc private func systemAudioTimerFired() {
+        let isAudioRunning = isDefaultOutputDeviceRunning()
+        setSource(.systemAudio, isPlaying: isAudioRunning)
+    }
+
+    private func isDefaultOutputDeviceRunning() -> Bool {
+        guard let deviceID = defaultOutputDeviceID() else { return false }
+        return isDeviceRunning(deviceID)
+    }
+
+    private func defaultOutputDeviceID() -> AudioDeviceID? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var deviceID = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            0,
+            nil,
+            &size,
+            &deviceID
+        )
+        guard status == noErr, deviceID != kAudioObjectUnknown else { return nil }
+        return deviceID
+    }
+
+    private func isDeviceRunning(_ deviceID: AudioDeviceID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var isRunning: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        let status = AudioObjectGetPropertyData(
+            deviceID,
+            &address,
+            0,
+            nil,
+            &size,
+            &isRunning
+        )
+        guard status == noErr else { return false }
+        return isRunning != 0
     }
 }

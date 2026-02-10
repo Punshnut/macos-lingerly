@@ -146,9 +146,9 @@
 "settings.wellness.hydration.title" = "Hydration reminder";
 "settings.wellness.hydration.subtitle" = "Shows a gentle prompt to drink water between breaks.";
 "settings.media.card.title" = "Media Playback";
-"settings.media.card.subtitle" = "Coordinate breaks with audio and video.";
+"settings.media.card.subtitle" = "Pause for music, videos, and browser streams.";
 "settings.media.pause.title" = "Pause timer while media plays";
-"settings.media.pause.subtitle" = "Stops the timer when audio or video is playing.";
+"settings.media.pause.subtitle" = "Stops the timer when system audio is active (including browser playback).";
 "settings.media.reset.title" = "Restart timer after media ends";
 "settings.media.reset.subtitle" = "Starts a fresh cycle when playback stops.";
 "settings.fullscreen.card.title" = "Fullscreen Apps";
@@ -263,3 +263,21 @@
 "Wellness Reminder Joiner 1" = "and";
 "Wellness Reminder Joiner 2" = "plus";
 "Wellness Reminder Joiner 3" = "along with";
+"settings.pause_apps.card.title" = "Pause for Specific Apps";
+"settings.pause_apps.card.subtitle" = "Pause the timer while selected apps are running.";
+"settings.pause_apps.toggle.title" = "Pause while selected apps are open";
+"settings.pause_apps.toggle.subtitle" = "Useful for meetings, streaming, and focused tools.";
+"settings.pause_apps.list.title" = "Apps";
+"settings.pause_apps.list.empty" = "No apps added yet.";
+"settings.pause_apps.add_button" = "Add App";
+"settings.pause_apps.panel.title" = "Choose an app to pause for";
+"settings.pause_apps.panel.add" = "Add";
+"settings.pause_behavior.card.title" = "After Auto-Pause Ends";
+"settings.pause_behavior.card.subtitle" = "Choose what happens when media stops or selected apps quit.";
+"settings.pause_behavior.title" = "Timer behavior";
+"settings.pause_behavior.subtitle" = "Resume, reset, or count down through the pause period.";
+"settings.pause_behavior.option_resume" = "Resume from paused time";
+"settings.pause_behavior.option_reset" = "Reset timer";
+"settings.pause_behavior.option_countdown" = "Let timer count down";
+
+"Timer paused at %@" = "Timer paused at %@";

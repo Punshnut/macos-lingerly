@@ -38,6 +38,22 @@ struct TimingModes: OptionSet {
     static let schedule = TimingModes(rawValue: 1 << 2)
 }
 
+/// What to do when an automatic smart-pause condition ends.
+enum SmartPauseResumeBehavior: String, CaseIterable {
+    case resumeTimer
+    case resetTimer
+    case countDownDuringPause
+}
+
+/// App bundle rule used for "pause while this app is open".
+struct PauseAppRule: Codable, Hashable, Identifiable {
+    let bundleIdentifier: String
+    let displayName: String
+    let bundlePath: String?
+
+    var id: String { bundleIdentifier.lowercased() }
+}
+
 /// Preset configuration for interval and break duration.
 struct TimingPreset: Identifiable {
     let id: String

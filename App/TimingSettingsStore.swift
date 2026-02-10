@@ -14,6 +14,9 @@ enum TimingSettingsKeys {
     static let snoozeMinutes = "lingerly.snooze.duration.minutes"
     static let mediaPauseEnabled = "lingerly.media.pause.enabled"
     static let mediaResetOnResume = "lingerly.media.reset.on.resume"
+    static let smartPauseResumeBehavior = "lingerly.smart.pause.resume.behavior"
+    static let pauseForAppsEnabled = "lingerly.smart.pause.apps.enabled"
+    static let pauseForAppsRules = "lingerly.smart.pause.apps.rules"
     static let resetOnUnlock = "lingerly.timer.reset.on.unlock"
     static let menuBarTimerEnabled = "lingerly.menu.timer.enabled"
     static let overlayStyle = "lingerly.overlay.style"
@@ -68,6 +71,37 @@ final class TimingSettingsStore {
     var mediaResetOnResume: Bool {
         get { bool(forKey: TimingSettingsKeys.mediaResetOnResume, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.mediaResetOnResume) }
+    }
+
+    /// Behavior used after a smart pause ends.
+    var smartPauseResumeBehavior: SmartPauseResumeBehavior {
+        get {
+            if let raw = defaults.string(forKey: TimingSettingsKeys.smartPauseResumeBehavior),
+               let behavior = SmartPauseResumeBehavior(rawValue: raw) {
+                return behavior
+            }
+            // Migration from the old boolean media-reset setting.
+            return mediaResetOnResume ? .resetTimer : .resumeTimer
+        }
+        set { defaults.set(newValue.rawValue, forKey: TimingSettingsKeys.smartPauseResumeBehavior) }
+    }
+
+    /// Whether app-based smart pause is enabled.
+    var pauseForAppsEnabled: Bool {
+        get { bool(forKey: TimingSettingsKeys.pauseForAppsEnabled, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.pauseForAppsEnabled) }
+    }
+
+    /// App bundle ids that trigger smart pause while running.
+    var pauseForAppsRules: [PauseAppRule] {
+        get {
+            guard let data = defaults.data(forKey: TimingSettingsKeys.pauseForAppsRules) else { return [] }
+            return (try? JSONDecoder().decode([PauseAppRule].self, from: data)) ?? []
+        }
+        set {
+            let encoded = try? JSONEncoder().encode(newValue)
+            defaults.set(encoded, forKey: TimingSettingsKeys.pauseForAppsRules)
+        }
     }
 
     /// Whether the timer resets when the user unlocks the Mac.

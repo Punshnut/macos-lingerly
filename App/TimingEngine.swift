@@ -132,6 +132,20 @@ final class TimingEngine {
         startTicking()
     }
 
+    /// Advances elapsed counters by a fixed amount of time.
+    func advance(by seconds: TimeInterval) {
+        guard state == .running else { return }
+        let delta = max(seconds, 0)
+        guard delta > 0 else { return }
+        if config.modes.contains(.interval) {
+            wallElapsedSeconds += delta
+        }
+        if config.modes.contains(.activeTime) {
+            activeElapsedSeconds += delta
+        }
+        lastTickDate = Date()
+    }
+
     /// Evaluates interval/active-time thresholds.
     private func shouldTriggerInterval() -> Bool {
         let threshold = TimeInterval(max(config.intervalMinutes, 1) * 60)

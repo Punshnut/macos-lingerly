@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 private func l(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
@@ -671,8 +672,11 @@ private struct SmartPauseSettingsView: View {
     @AppStorage(OnboardingKeys.enforcementStyle) private var enforcementStyleRaw = EnforcementStyle.gentle.rawValue
     @AppStorage(OnboardingKeys.allowLockScreen) private var allowLockScreen = false
     @AppStorage(TimingSettingsKeys.mediaPauseEnabled) private var mediaPauseEnabled = false
-    @AppStorage(TimingSettingsKeys.mediaResetOnResume) private var mediaResetOnResume = false
+    @AppStorage(TimingSettingsKeys.pauseForAppsEnabled) private var pauseForAppsEnabled = false
+    @AppStorage(TimingSettingsKeys.smartPauseResumeBehavior) private var smartPauseResumeBehaviorRaw = SmartPauseResumeBehavior.resumeTimer.rawValue
     @AppStorage(TimingSettingsKeys.resetOnUnlock) private var resetOnUnlock = false
+    @State private var pauseAppRules: [PauseAppRule] = []
+    private let settingsStore = TimingSettingsStore()
 
     var body: some View {
         SettingsScrollView(
@@ -738,22 +742,189 @@ private struct SmartPauseSettingsView: View {
                     subtitle: l("settings.media.pause.subtitle"),
                     isOn: $mediaPauseEnabled
                 )
+            }
+
+            SettingsCard(l("settings.pause_apps.card.title"), subtitle: l("settings.pause_apps.card.subtitle")) {
+                SettingsToggleRow(
+                    icon: "app.badge",
+                    title: l("settings.pause_apps.toggle.title"),
+                    subtitle: l("settings.pause_apps.toggle.subtitle"),
+                    isOn: $pauseForAppsEnabled
+                )
 
                 SettingsDivider()
 
-                SettingsToggleRow(
-                    icon: "arrow.counterclockwise.circle",
-                    title: l("settings.media.reset.title"),
-                    subtitle: l("settings.media.reset.subtitle"),
-                    isOn: $mediaResetOnResume,
-                    isEnabled: mediaPauseEnabled
+                PauseAppsListEditor(
+                    rules: $pauseAppRules,
+                    isEnabled: pauseForAppsEnabled
                 )
             }
+
+            SettingsCard(l("settings.pause_behavior.card.title"), subtitle: l("settings.pause_behavior.card.subtitle")) {
+                SettingsRow(
+                    icon: "arrow.clockwise.circle",
+                    title: l("settings.pause_behavior.title"),
+                    subtitle: l("settings.pause_behavior.subtitle")
+                ) {
+                    Picker("", selection: $smartPauseResumeBehaviorRaw) {
+                        Text(l("settings.pause_behavior.option_resume")).tag(SmartPauseResumeBehavior.resumeTimer.rawValue)
+                        Text(l("settings.pause_behavior.option_reset")).tag(SmartPauseResumeBehavior.resetTimer.rawValue)
+                        Text(l("settings.pause_behavior.option_countdown")).tag(SmartPauseResumeBehavior.countDownDuringPause.rawValue)
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .frame(width: 240)
+                    .disabled(!hasAnySmartPauseSource)
+                }
+            }
+        }
+        .onAppear {
+            pauseAppRules = settingsStore.pauseForAppsRules
+            smartPauseResumeBehaviorRaw = settingsStore.smartPauseResumeBehavior.rawValue
+        }
+        .onChange(of: pauseAppRules) { newRules in
+            settingsStore.pauseForAppsRules = newRules
         }
     }
 
     private func isFirmEnforcement() -> Bool {
         EnforcementStyle(rawValue: enforcementStyleRaw) == .firm
+    }
+
+    private var hasAnySmartPauseSource: Bool {
+        mediaPauseEnabled || (pauseForAppsEnabled && !pauseAppRules.isEmpty)
+    }
+}
+
+private struct PauseAppsListEditor: View {
+    @Binding var rules: [PauseAppRule]
+    let isEnabled: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text(l("settings.pause_apps.list.title"))
+                    .font(.callout.weight(.semibold))
+                Spacer()
+                Button(l("settings.pause_apps.add_button")) {
+                    addAppRule()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!isEnabled)
+            }
+
+            if rules.isEmpty {
+                Text(l("settings.pause_apps.list.empty"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 4)
+                    .padding(.bottom, 2)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(rules) { rule in
+                        PauseAppRuleRow(rule: rule, isEnabled: isEnabled) {
+                            removeRule(rule)
+                        }
+                        if rule.id != rules.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.primary.opacity(0.05))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+            }
+        }
+        .padding(.leading, 48)
+        .opacity(isEnabled ? 1 : 0.6)
+    }
+
+    private func addAppRule() {
+        let panel = NSOpenPanel()
+        panel.title = l("settings.pause_apps.panel.title")
+        panel.prompt = l("settings.pause_apps.panel.add")
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.application]
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let bundle = Bundle(url: url), let identifier = bundle.bundleIdentifier else { return }
+
+        let displayName =
+            (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String) ??
+            (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String) ??
+            url.deletingPathExtension().lastPathComponent
+
+        let newRule = PauseAppRule(
+            bundleIdentifier: identifier,
+            displayName: displayName,
+            bundlePath: bundle.bundlePath
+        )
+
+        upsert(newRule)
+    }
+
+    private func upsert(_ rule: PauseAppRule) {
+        let key = rule.bundleIdentifier.lowercased()
+        rules.removeAll { $0.bundleIdentifier.lowercased() == key }
+        rules.append(rule)
+        rules.sort { lhs, rhs in
+            lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName) == .orderedAscending
+        }
+    }
+
+    private func removeRule(_ rule: PauseAppRule) {
+        let key = rule.bundleIdentifier.lowercased()
+        rules.removeAll { $0.bundleIdentifier.lowercased() == key }
+    }
+}
+
+private struct PauseAppRuleRow: View {
+    let rule: PauseAppRule
+    let isEnabled: Bool
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: appIcon)
+                .resizable()
+                .frame(width: 18, height: 18)
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(rule.displayName)
+                    .font(.callout)
+                    .lineLimit(1)
+                Text(rule.bundleIdentifier)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Button(role: .destructive, action: onRemove) {
+                Image(systemName: "minus.circle.fill")
+                    .font(.callout)
+            }
+            .buttonStyle(.plain)
+            .disabled(!isEnabled)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+    }
+
+    private var appIcon: NSImage {
+        if let bundlePath = rule.bundlePath,
+           FileManager.default.fileExists(atPath: bundlePath) {
+            return NSWorkspace.shared.icon(forFile: bundlePath)
+        }
+        return NSImage(systemSymbolName: "app.fill", accessibilityDescription: nil) ?? NSImage()
     }
 }
 

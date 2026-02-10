@@ -26,20 +26,24 @@ final class AppStateController {
     }
 
     private(set) var isRunning = false
-    var isPaused: Bool { isRunning && isManuallyPaused }
+    var isPaused: Bool { isRunning && (isManuallyPaused || isSmartPaused) }
 
     private let activityMonitor = ActivityMonitor()
     private let settingsStore = TimingSettingsStore()
     private lazy var engine = TimingEngine(activityMonitor: activityMonitor, configuration: loadConfiguration())
     private let mediaPlaybackMonitor = MediaPlaybackMonitor()
+    private let runningAppsMonitor = RunningApplicationsMonitor()
     private let fullscreenDetector = FullscreenDetector()
     private let overlayController = BreakOverlayController()
     private let notificationManager = NotificationManager.shared
     private let statsStore = StatsStore()
     private var pendingFullscreenBreak = false
-    private var isMediaPaused = false
+    private var isSmartPaused = false
+    private var smartPauseStartedAt: Date?
     private var isManuallyPaused = false
     private var lastUserInactiveDate: Date?
+    private var isMediaConditionActive = false
+    private var isAppConditionActive = false
 
     private var pulsePhase: CGFloat = 0
     private var pulseTimer: Timer?
@@ -110,7 +114,7 @@ final class AppStateController {
             Task { @MainActor in
                 guard let self else { return }
                 self.engine.updateConfiguration(self.loadConfiguration())
-                self.refreshMediaPause()
+                self.refreshSmartPause()
             }
         }
 
@@ -135,6 +139,12 @@ final class AppStateController {
                 self?.handleMediaPlaybackChange(isPlaying: isPlaying)
             }
         }
+
+        runningAppsMonitor.onChange = { [weak self] runningBundleIDs in
+            Task { @MainActor in
+                self?.handleRunningAppsChange(runningBundleIDs: runningBundleIDs)
+            }
+        }
     }
 
     @MainActor deinit {
@@ -153,7 +163,7 @@ final class AppStateController {
         isManuallyPaused = false
         engine.updateConfiguration(loadConfiguration())
         engine.start()
-        handleMediaPlaybackChange(isPlaying: mediaPlaybackMonitor.isPlaying)
+        refreshSmartPause()
         onStateChange?(state)
     }
 
@@ -164,7 +174,8 @@ final class AppStateController {
         isManuallyPaused = true
         engine.pause()
         overlayController.hide()
-        isMediaPaused = false
+        isSmartPaused = false
+        smartPauseStartedAt = nil
         onStateChange?(state)
     }
 
@@ -196,7 +207,10 @@ final class AppStateController {
     func resumeTimer() {
         guard isRunning else { return }
         isManuallyPaused = false
-        engine.resume(resetCounters: false)
+        applySmartPauseState()
+        if !isSmartPaused {
+            engine.resume(resetCounters: false)
+        }
         onStateChange?(state)
     }
 
@@ -268,7 +282,7 @@ final class AppStateController {
             return .breakDue
         }
 
-        if isManuallyPaused || isMediaPaused {
+        if isManuallyPaused || isSmartPaused {
             return .paused
         }
 
@@ -286,6 +300,12 @@ final class AppStateController {
             return String(format: "%d:%02d:%02d", hours, minutes, secs)
         }
         return String(format: "%d:%02d", minutes, secs)
+    }
+
+    /// Returns the paused countdown value shown in menu context, if available.
+    func pausedCountdownSeconds(at date: Date = Date()) -> Int? {
+        guard isRunning, isPaused else { return nil }
+        return engine.timeUntilNextBreak(at: date)
     }
 
     /// Runs side effects when the engine state changes.
@@ -316,25 +336,23 @@ final class AppStateController {
         onStateChange?(state)
     }
 
-    /// Pauses/resumes timing based on media playback.
+    /// Updates media playback pause condition.
     private func handleMediaPlaybackChange(isPlaying: Bool) {
-        guard settingsStore.mediaPauseEnabled else {
-            if isMediaPaused {
-                engine.resume(resetCounters: false)
-                isMediaPaused = false
-            }
+        isMediaConditionActive = settingsStore.mediaPauseEnabled && isPlaying
+        applySmartPauseState()
+    }
+
+    /// Updates app-based pause condition from the running app set.
+    private func handleRunningAppsChange(runningBundleIDs: Set<String>) {
+        guard settingsStore.pauseForAppsEnabled else {
+            isAppConditionActive = false
+            applySmartPauseState()
             return
         }
 
-        if isPlaying {
-            guard isRunning, state == .running, !isMediaPaused else { return }
-            engine.pause()
-            isMediaPaused = true
-        } else {
-            guard isRunning, state == .running, isMediaPaused else { return }
-            engine.resume(resetCounters: settingsStore.mediaResetOnResume)
-            isMediaPaused = false
-        }
+        let trackedIDs = Set(settingsStore.pauseForAppsRules.map { $0.bundleIdentifier.lowercased() })
+        isAppConditionActive = !trackedIDs.isEmpty && !trackedIDs.isDisjoint(with: runningBundleIDs)
+        applySmartPauseState()
     }
 
     private func handleUserActiveChange(isActive: Bool) {
@@ -358,9 +376,37 @@ final class AppStateController {
         }
     }
 
-    /// Re-evaluates media pause behavior after settings changes.
-    private func refreshMediaPause() {
+    /// Re-evaluates smart pause behavior after settings changes.
+    private func refreshSmartPause() {
         handleMediaPlaybackChange(isPlaying: mediaPlaybackMonitor.isPlaying)
+        handleRunningAppsChange(runningBundleIDs: runningAppsMonitor.runningBundleIdentifiers)
+    }
+
+    private func applySmartPauseState() {
+        let shouldPause = isMediaConditionActive || isAppConditionActive
+        if shouldPause {
+            guard isRunning, state == .running, !isManuallyPaused, !isSmartPaused else { return }
+            engine.pause()
+            isSmartPaused = true
+            smartPauseStartedAt = Date()
+            return
+        }
+
+        if isManuallyPaused {
+            isSmartPaused = false
+            smartPauseStartedAt = nil
+            return
+        }
+
+        guard isRunning, state == .running, isSmartPaused else { return }
+        let pausedDuration = Date().timeIntervalSince(smartPauseStartedAt ?? Date())
+        let behavior = settingsStore.smartPauseResumeBehavior
+        if behavior == .countDownDuringPause {
+            engine.advance(by: pausedDuration)
+        }
+        engine.resume(resetCounters: behavior == .resetTimer)
+        isSmartPaused = false
+        smartPauseStartedAt = nil
     }
 
     private func resumeAfterSnooze() {
@@ -374,7 +420,8 @@ final class AppStateController {
 
         guard shouldResume else { return }
 
-        if isMediaPaused {
+        applySmartPauseState()
+        if isSmartPaused || isManuallyPaused {
             return
         }
 
