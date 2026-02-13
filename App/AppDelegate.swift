@@ -1,10 +1,15 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 /// Manages lifecycle, menu bar UI, and top-level windows for the app.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
+    private lazy var updaterController: SPUStandardUpdaterController? = {
+        guard Self.isSparkleConfigurationValid() else { return nil }
+        return SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    }()
     let appState = AppStateController()
     private var startStopItem: NSMenuItem?
     private var countdownItem: NSMenuItem?
@@ -12,11 +17,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var takeBreakNowItem: NSMenuItem?
     private var resetTimerItem: NSMenuItem?
     private var settingsItem: NSMenuItem?
+    private var checkForUpdatesItem: NSMenuItem?
     private var quitItem: NSMenuItem?
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var menuUpdateTimer: DispatchSourceTimer?
     private var isMenuOpen = false
+    
+    var isUpdaterAvailable: Bool {
+        updaterController != nil
+    }
 
     /// Boots the menu bar UI and starts the timing engine.
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -120,6 +130,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(settingsItem)
         self.settingsItem = settingsItem
 
+        let checkForUpdatesItem = NSMenuItem(
+            title: String(localized: "Check for Updates..."),
+            action: #selector(checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        checkForUpdatesItem.keyEquivalentModifierMask = []
+        checkForUpdatesItem.target = self
+        let updateImage = NSImage(systemSymbolName: "sparkles", accessibilityDescription: nil)
+        updateImage?.isTemplate = true
+        checkForUpdatesItem.image = updateImage
+        checkForUpdatesItem.isEnabled = isUpdaterAvailable
+        menu.addItem(checkForUpdatesItem)
+        self.checkForUpdatesItem = checkForUpdatesItem
+
         let quitItem = NSMenuItem(
             title: String(localized: "Quit Lingerly"),
             action: #selector(NSApplication.terminate(_:)),
@@ -138,6 +162,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func clearFooterKeyEquivalents() {
         settingsItem?.keyEquivalent = ""
         settingsItem?.keyEquivalentModifierMask = []
+        checkForUpdatesItem?.keyEquivalent = ""
+        checkForUpdatesItem?.keyEquivalentModifierMask = []
         quitItem?.keyEquivalent = ""
         quitItem?.keyEquivalentModifierMask = []
     }
@@ -184,6 +210,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Opens the settings window from the status menu.
     @objc private func openSettings(_ sender: Any?) {
         showSettingsWindow()
+    }
+
+    /// Opens Sparkle's update check window.
+    @objc func checkForUpdates(_ sender: Any?) {
+        updaterController?.checkForUpdates(sender)
     }
 
     /// Terminates the app.
@@ -348,5 +379,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func stopMenuUpdateTimer() {
         menuUpdateTimer?.cancel()
         menuUpdateTimer = nil
+    }
+    
+    private static func isSparkleConfigurationValid() -> Bool {
+        guard
+            let info = Bundle.main.infoDictionary,
+            let feedURL = (info["SUFeedURL"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            let publicKey = (info["SUPublicEDKey"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            !feedURL.isEmpty,
+            !publicKey.isEmpty,
+            Data(base64Encoded: publicKey) != nil
+        else {
+            return false
+        }
+        return true
     }
 }

@@ -307,6 +307,22 @@ private struct GeneralSettingsView: View {
                         .disabled(!isRunning)
                     }
                 }
+
+                SettingsDivider()
+
+                SettingsRow(
+                    icon: "sparkles",
+                    title: l("settings.general.updates.title"),
+                    subtitle: l("settings.general.updates.subtitle")
+                ) {
+                    let updaterAvailable = (NSApp.delegate as? AppDelegate)?.isUpdaterAvailable ?? false
+                    Button(String(localized: "Check for Updates...")) {
+                        (NSApp.delegate as? AppDelegate)?.checkForUpdates(nil)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(!updaterAvailable)
+                }
             }
         }
     }

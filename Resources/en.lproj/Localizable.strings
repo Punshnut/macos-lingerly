@@ -11,6 +11,7 @@
 "Timer stopped" = "Reminders are off";
 "Reset Timer" = "Restart Timer";
 "Settings..." = "Settings...";
+"Check for Updates..." = "Check for Updates...";
 "Export Diagnostics" = "Export diagnostics";
 "Quit Lingerly" = "Quit Lingerly";
 
@@ -154,6 +155,8 @@
 "settings.general.menubar_timer.subtitle" = "Show the countdown in the menu bar.";
 "settings.general.actions.title" = "Quick Actions";
 "settings.general.actions.subtitle" = "Start a break now or restart the timer.";
+"settings.general.updates.title" = "Updates";
+"settings.general.updates.subtitle" = "Check for a new version of Lingerly.";
 "settings.wellness.card.title" = "Wellness reminders";
 "settings.wellness.card.subtitle" = "Add supportive nudges that help you feel better through the day.";
 "settings.wellness.hydration.title" = "Hydration reminder";

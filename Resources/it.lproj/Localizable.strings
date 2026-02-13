@@ -294,3 +294,7 @@
 
 "Settings" = "Settings";
 "Lingerly isn't available right now." = "Lingerly isn't available right now.";
+
+"Check for Updates..." = "Check for Updates...";
+"settings.general.updates.title" = "Updates";
+"settings.general.updates.subtitle" = "Check for a new version of Lingerly.";
