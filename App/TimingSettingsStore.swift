@@ -17,6 +17,7 @@ enum TimingSettingsKeys {
     static let mediaPauseEnabled = "lingerly.media.pause.enabled"
     static let mediaResetOnResume = "lingerly.media.reset.on.resume"
     static let smartPauseResumeBehavior = "lingerly.smart.pause.resume.behavior"
+    static let smartPauseCooldownMinutes = "lingerly.smart.pause.cooldown.minutes"
     static let pauseForAppsEnabled = "lingerly.smart.pause.apps.enabled"
     static let pauseForAppsRules = "lingerly.smart.pause.apps.rules"
     static let resetOnUnlock = "lingerly.timer.reset.on.unlock"
@@ -86,6 +87,12 @@ final class TimingSettingsStore {
             return mediaResetOnResume ? .resetTimer : .resumeTimer
         }
         set { defaults.set(newValue.rawValue, forKey: TimingSettingsKeys.smartPauseResumeBehavior) }
+    }
+
+    /// Cooldown before smart pause resumes after a condition ends.
+    var smartPauseCooldownMinutes: Int {
+        get { value(forKey: TimingSettingsKeys.smartPauseCooldownMinutes, defaultValue: 1) }
+        set { defaults.set(max(1, min(newValue, 5)), forKey: TimingSettingsKeys.smartPauseCooldownMinutes) }
     }
 
     /// Whether app-based smart pause is enabled.

@@ -40,6 +40,7 @@ final class AppStateController {
     private var pendingFullscreenBreak = false
     private var isSmartPaused = false
     private var smartPauseStartedAt: Date?
+    private var smartPauseCooldownTimer: Timer?
     private var isManuallyPaused = false
     private var lastUserInactiveDate: Date?
     private var isMediaConditionActive = false
@@ -159,6 +160,7 @@ final class AppStateController {
     /// Starts timing and transitions the app into running state.
     func start() {
         clearSnooze()
+        cancelSmartPauseCooldown()
         isRunning = true
         isManuallyPaused = false
         engine.updateConfiguration(loadConfiguration())
@@ -171,6 +173,7 @@ final class AppStateController {
     func stop() {
         guard isRunning else { return }
         clearSnooze()
+        cancelSmartPauseCooldown()
         isManuallyPaused = true
         engine.pause()
         overlayController.hide()
@@ -189,6 +192,7 @@ final class AppStateController {
     func resetTimer() {
         guard isRunning else { return }
         clearSnooze()
+        cancelSmartPauseCooldown()
         engine.resetCycle()
         overlayController.hide()
         onStateChange?(state)
@@ -198,6 +202,7 @@ final class AppStateController {
     func pauseTimer() {
         guard isRunning else { return }
         clearSnooze()
+        cancelSmartPauseCooldown()
         isManuallyPaused = true
         engine.pause()
         onStateChange?(state)
@@ -207,6 +212,7 @@ final class AppStateController {
     func resumeTimer() {
         guard isRunning else { return }
         isManuallyPaused = false
+        cancelSmartPauseCooldown()
         applySmartPauseState()
         if !isSmartPaused {
             engine.resume(resetCounters: false)
@@ -385,6 +391,7 @@ final class AppStateController {
     private func applySmartPauseState() {
         let shouldPause = isMediaConditionActive || isAppConditionActive
         if shouldPause {
+            cancelSmartPauseCooldown()
             guard isRunning, state == .running, !isManuallyPaused, !isSmartPaused else { return }
             engine.pause()
             isSmartPaused = true
@@ -393,20 +400,20 @@ final class AppStateController {
         }
 
         if isManuallyPaused {
+            cancelSmartPauseCooldown()
             isSmartPaused = false
             smartPauseStartedAt = nil
             return
         }
 
         guard isRunning, state == .running, isSmartPaused else { return }
-        let pausedDuration = Date().timeIntervalSince(smartPauseStartedAt ?? Date())
-        let behavior = settingsStore.smartPauseResumeBehavior
-        if behavior == .countDownDuringPause {
-            engine.advance(by: pausedDuration)
+        guard smartPauseCooldownTimer == nil else { return }
+        let cooldownSeconds = TimeInterval(max(settingsStore.smartPauseCooldownMinutes, 1) * 60)
+        smartPauseCooldownTimer = Timer.scheduledTimer(withTimeInterval: cooldownSeconds, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                self?.resumeFromSmartPauseAfterCooldown()
+            }
         }
-        engine.resume(resetCounters: behavior == .resetTimer)
-        isSmartPaused = false
-        smartPauseStartedAt = nil
     }
 
     private func resumeAfterSnooze() {
@@ -443,6 +450,26 @@ final class AppStateController {
         snoozeEndDate = nil
         snoozeWasRunning = false
         snoozeReturnToBreak = false
+    }
+
+    private func cancelSmartPauseCooldown() {
+        smartPauseCooldownTimer?.invalidate()
+        smartPauseCooldownTimer = nil
+    }
+
+    private func resumeFromSmartPauseAfterCooldown() {
+        cancelSmartPauseCooldown()
+        guard isRunning, state == .running, isSmartPaused, !isManuallyPaused else { return }
+        guard !isMediaConditionActive, !isAppConditionActive else { return }
+
+        let pausedDuration = Date().timeIntervalSince(smartPauseStartedAt ?? Date())
+        let behavior = settingsStore.smartPauseResumeBehavior
+        if behavior == .countDownDuringPause {
+            engine.advance(by: pausedDuration)
+        }
+        engine.resume(resetCounters: behavior == .resetTimer)
+        isSmartPaused = false
+        smartPauseStartedAt = nil
     }
 
     /// Starts a subtle pulse for the menu bar icon during active breaks.

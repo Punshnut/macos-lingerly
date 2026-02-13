@@ -279,6 +279,9 @@
 "settings.pause_behavior.option_resume" = "Resume where I left off";
 "settings.pause_behavior.option_reset" = "Start a new timer";
 "settings.pause_behavior.option_countdown" = "Keep counting down during pause";
+"settings.pause_behavior.cooldown.title" = "Resume cooldown";
+"settings.pause_behavior.cooldown.subtitle" = "Wait this long after auto-pause conditions end before resuming.";
+"settings.pause_behavior.cooldown.value" = "%d min";
 
 "Timer paused at %@" = "Timer paused at %@";
 

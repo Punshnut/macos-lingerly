@@ -674,6 +674,7 @@ private struct SmartPauseSettingsView: View {
     @AppStorage(TimingSettingsKeys.mediaPauseEnabled) private var mediaPauseEnabled = false
     @AppStorage(TimingSettingsKeys.pauseForAppsEnabled) private var pauseForAppsEnabled = false
     @AppStorage(TimingSettingsKeys.smartPauseResumeBehavior) private var smartPauseResumeBehaviorRaw = SmartPauseResumeBehavior.resumeTimer.rawValue
+    @AppStorage(TimingSettingsKeys.smartPauseCooldownMinutes) private var smartPauseCooldownMinutes = 1
     @AppStorage(TimingSettingsKeys.resetOnUnlock) private var resetOnUnlock = false
     @State private var pauseAppRules: [PauseAppRule] = []
     private let settingsStore = TimingSettingsStore()
@@ -776,6 +777,22 @@ private struct SmartPauseSettingsView: View {
                     .frame(width: 240)
                     .disabled(!hasAnySmartPauseSource)
                 }
+
+                SettingsDivider()
+
+                SettingsRow(
+                    icon: "hourglass",
+                    title: l("settings.pause_behavior.cooldown.title"),
+                    subtitle: l("settings.pause_behavior.cooldown.subtitle")
+                ) {
+                    HStack(spacing: 12) {
+                        Slider(value: smartPauseCooldownMinutesBinding, in: 1...5, step: 1)
+                            .frame(width: 180)
+                        Text(String(format: l("settings.pause_behavior.cooldown.value"), smartPauseCooldownMinutes))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 60, alignment: .trailing)
+                    }
+                }
             }
         }
         .onAppear {
@@ -793,6 +810,13 @@ private struct SmartPauseSettingsView: View {
 
     private var hasAnySmartPauseSource: Bool {
         mediaPauseEnabled || (pauseForAppsEnabled && !pauseAppRules.isEmpty)
+    }
+
+    private var smartPauseCooldownMinutesBinding: Binding<Double> {
+        Binding(
+            get: { Double(smartPauseCooldownMinutes) },
+            set: { smartPauseCooldownMinutes = max(1, min(Int($0.rounded()), 5)) }
+        )
     }
 }
 
