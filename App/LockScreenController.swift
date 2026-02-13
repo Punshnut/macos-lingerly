@@ -1,18 +1,40 @@
 import Foundation
+import Darwin
 
 /// Provides a thin wrapper around the system lock-screen command.
 enum LockScreenController {
-    /// Invokes the system lock screen command via `CGSession`, with a fallback to AppleScript.
+    /// Invokes the system lock screen command, preferring modern system APIs.
     static func lockScreen() {
         DispatchQueue.global(qos: .userInitiated).async {
+            if runSACLockScreenImmediate() {
+                return
+            }
             if runCGSession() {
                 return
             }
             if runAppleScriptLock() {
                 return
             }
-            NSLog("LockScreenController: Unable to lock screen via CGSession or AppleScript.")
+            NSLog("LockScreenController: Unable to lock screen via SACLockScreenImmediate, CGSession, or AppleScript.")
         }
+    }
+
+    private static func runSACLockScreenImmediate() -> Bool {
+        let dylibPath = "/System/Library/PrivateFrameworks/login.framework/Versions/A/login"
+        guard let handle = dlopen(dylibPath, RTLD_NOW) else {
+            NSLog("LockScreenController: Failed to load login framework at %@", dylibPath)
+            return false
+        }
+        defer { dlclose(handle) }
+
+        guard let symbol = dlsym(handle, "SACLockScreenImmediate") else {
+            return false
+        }
+
+        typealias LockFunction = @convention(c) () -> Void
+        let lock = unsafeBitCast(symbol, to: LockFunction.self)
+        lock()
+        return true
     }
 
     private static func runCGSession() -> Bool {
