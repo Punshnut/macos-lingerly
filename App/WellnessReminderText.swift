@@ -3,6 +3,8 @@ import Foundation
 struct WellnessReminderState {
     let hydrationEnabled: Bool
     let freshAirEnabled: Bool
+    let standUpEnabled: Bool
+    let workoutEnabled: Bool
 }
 
 enum WellnessReminderText {
@@ -15,7 +17,9 @@ enum WellnessReminderText {
         let base = localized("Wellness Reminder Base")
         let clauses = [
             Clause(key: "Wellness Reminder Hydration", isEnabled: state.hydrationEnabled),
-            Clause(key: "Wellness Reminder Fresh Air", isEnabled: state.freshAirEnabled)
+            Clause(key: "Wellness Reminder Fresh Air", isEnabled: state.freshAirEnabled),
+            Clause(key: "Wellness Reminder Stand Up", isEnabled: state.standUpEnabled),
+            Clause(key: "Wellness Reminder Workout", isEnabled: state.workoutEnabled)
         ]
         .compactMap { clause in
             clause.isEnabled ? localized(clause.key) : nil
@@ -27,7 +31,9 @@ enum WellnessReminderText {
     static func sentenceFromDefaults(_ defaults: UserDefaults = .standard) -> String {
         let state = WellnessReminderState(
             hydrationEnabled: defaults.bool(forKey: TimingSettingsKeys.waterReminderEnabled),
-            freshAirEnabled: defaults.bool(forKey: TimingSettingsKeys.freshAirReminderEnabled)
+            freshAirEnabled: defaults.bool(forKey: TimingSettingsKeys.freshAirReminderEnabled),
+            standUpEnabled: defaults.bool(forKey: TimingSettingsKeys.standUpReminderEnabled),
+            workoutEnabled: defaults.bool(forKey: TimingSettingsKeys.workoutReminderEnabled)
         )
         return sentence(for: state)
     }

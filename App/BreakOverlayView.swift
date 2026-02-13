@@ -15,6 +15,8 @@ struct BreakOverlayView: View {
     @AppStorage(TimingSettingsKeys.snoozeMinutes) private var snoozeMinutes = 1
     @AppStorage(TimingSettingsKeys.waterReminderEnabled) private var waterReminderEnabled = false
     @AppStorage(TimingSettingsKeys.freshAirReminderEnabled) private var freshAirReminderEnabled = false
+    @AppStorage(TimingSettingsKeys.standUpReminderEnabled) private var standUpReminderEnabled = false
+    @AppStorage(TimingSettingsKeys.workoutReminderEnabled) private var workoutReminderEnabled = false
     @AppStorage(TimingSettingsKeys.overlayStyle) private var overlayStyleRaw = OverlayStyle.modernTahoe.rawValue
     @State private var backgroundVisible = false
     @State private var contentVisible = false
@@ -182,7 +184,9 @@ struct BreakOverlayView: View {
         WellnessReminderText.sentence(
             for: WellnessReminderState(
                 hydrationEnabled: waterReminderEnabled,
-                freshAirEnabled: freshAirReminderEnabled
+                freshAirEnabled: freshAirReminderEnabled,
+                standUpEnabled: standUpReminderEnabled,
+                workoutEnabled: workoutReminderEnabled
             )
         )
     }

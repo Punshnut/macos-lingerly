@@ -11,6 +11,8 @@ enum TimingSettingsKeys {
     static let presetId = "lingerly.timing.preset.id"
     static let waterReminderEnabled = "lingerly.reminder.water.enabled"
     static let freshAirReminderEnabled = "lingerly.reminder.freshAir.enabled"
+    static let standUpReminderEnabled = "lingerly.reminder.standUp.enabled"
+    static let workoutReminderEnabled = "lingerly.reminder.workout.enabled"
     static let snoozeMinutes = "lingerly.snooze.duration.minutes"
     static let mediaPauseEnabled = "lingerly.media.pause.enabled"
     static let mediaResetOnResume = "lingerly.media.reset.on.resume"

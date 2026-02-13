@@ -931,6 +931,8 @@ private struct PauseAppRuleRow: View {
 private struct WellnessSettingsView: View {
     @AppStorage(TimingSettingsKeys.waterReminderEnabled) private var waterReminderEnabled = false
     @AppStorage(TimingSettingsKeys.freshAirReminderEnabled) private var freshAirReminderEnabled = false
+    @AppStorage(TimingSettingsKeys.standUpReminderEnabled) private var standUpReminderEnabled = false
+    @AppStorage(TimingSettingsKeys.workoutReminderEnabled) private var workoutReminderEnabled = false
 
     var body: some View {
         SettingsScrollView(
@@ -952,6 +954,24 @@ private struct WellnessSettingsView: View {
                     title: l("settings.wellness.fresh_air.title"),
                     subtitle: l("settings.wellness.fresh_air.subtitle"),
                     isOn: $freshAirReminderEnabled
+                )
+
+                SettingsDivider()
+
+                SettingsToggleRow(
+                    icon: "figure.walk",
+                    title: l("settings.wellness.stand_up.title"),
+                    subtitle: l("settings.wellness.stand_up.subtitle"),
+                    isOn: $standUpReminderEnabled
+                )
+
+                SettingsDivider()
+
+                SettingsToggleRow(
+                    icon: "figure.strengthtraining.traditional",
+                    title: l("settings.wellness.workout.title"),
+                    subtitle: l("settings.wellness.workout.subtitle"),
+                    isOn: $workoutReminderEnabled
                 )
             }
         }
