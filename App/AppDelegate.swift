@@ -6,6 +6,12 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
+    private let menuBarTimerFixedWidth: CGFloat = {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        let sample = "88:88:88" as NSString
+        let textWidth = ceil(sample.size(withAttributes: [.font: font]).width)
+        return NSStatusItem.squareLength + textWidth + 18
+    }()
     private lazy var updaterController: SPUStandardUpdaterController? = {
         guard Self.isSparkleConfigurationValid() else { return nil }
         return SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -45,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.hotkeyManager?.reload()
+                self?.updateCountdownTitle()
             }
         }
         appState.onStateChange = { [weak self] _ in
@@ -172,6 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
         self.statusItem = statusItem
+        applyMenuBarStatusWidth()
     }
 
     private func clearFooterKeyEquivalents() {
@@ -318,7 +326,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 statusItem?.menu?.itemChanged(item)
             }
         }
-        statusItem?.button?.title = menuBarCountdownTitle(from: title)
+        let menuBarTitle = menuBarCountdownTitle(from: title)
+        applyMenuBarStatusWidth()
+        updateMenuBarButtonTitle(menuBarTitle)
         statusItem?.button?.image = appState.currentIconImage()
         updateStartStopTitle()
     }
@@ -358,6 +368,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .breakDue, .paused, .inactive:
             return ""
         }
+    }
+
+    private func applyMenuBarStatusWidth() {
+        guard let statusItem else { return }
+        let timerEnabled = UserDefaults.standard.bool(forKey: TimingSettingsKeys.menuBarTimerEnabled)
+        statusItem.length = timerEnabled ? menuBarTimerFixedWidth : NSStatusItem.variableLength
+    }
+
+    private func updateMenuBarButtonTitle(_ title: String) {
+        guard let button = statusItem?.button else { return }
+        button.title = ""
+        guard !title.isEmpty else {
+            button.attributedTitle = NSAttributedString(string: "")
+            return
+        }
+
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+            .paragraphStyle: style
+        ]
+        button.attributedTitle = NSAttributedString(string: title, attributes: attributes)
     }
 
     private func makeCountdownView(initialTitle: String) -> NSView {
