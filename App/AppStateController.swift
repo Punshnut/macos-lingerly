@@ -225,6 +225,12 @@ final class AppStateController {
         snooze(minutes: Self.currentSnoozeMinutes())
     }
 
+    /// Snoozes only when a break prompt is currently visible to the user.
+    func snoozeIfBreakPromptVisible() {
+        guard isBreakPromptVisible else { return }
+        snoozeDefault()
+    }
+
     /// Pauses timing for a fixed duration, then resumes if previously running.
     func snooze(minutes: Int) {
         let wasRunning = isRunning
@@ -542,5 +548,9 @@ final class AppStateController {
     private static func currentSnoozeMinutes() -> Int {
         let value = UserDefaults.standard.integer(forKey: TimingSettingsKeys.snoozeMinutes)
         return max(value, 1)
+    }
+
+    private var isBreakPromptVisible: Bool {
+        state == .breakDue || state == .breakActive || pendingFullscreenBreak
     }
 }

@@ -23,6 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var settingsWindow: NSWindow?
     private var menuUpdateTimer: DispatchSourceTimer?
     private var isMenuOpen = false
+    private var hotkeyManager: GlobalHotkeyManager?
+    private var defaultsObserver: NSObjectProtocol?
     
     var isUpdaterAvailable: Bool {
         updaterController != nil
@@ -32,6 +34,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
+        hotkeyManager = GlobalHotkeyManager { [weak self] action in
+            self?.handleHotkeyAction(action)
+        }
+        hotkeyManager?.reload()
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.hotkeyManager?.reload()
+            }
+        }
         appState.onStateChange = { [weak self] _ in
             self?.refreshStatusUI()
         }
@@ -187,6 +202,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Toggles the timing engine on/off from the status menu.
     @objc private func handleStartStop(_ sender: Any?) {
+        toggleStartStop()
+    }
+
+    private func toggleStartStop() {
         if !appState.isRunning {
             appState.start()
         } else if appState.isPaused {
@@ -379,6 +398,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func stopMenuUpdateTimer() {
         menuUpdateTimer?.cancel()
         menuUpdateTimer = nil
+    }
+
+    private func handleHotkeyAction(_ action: GlobalHotkeyManager.Action) {
+        switch action {
+        case .startStop:
+            toggleStartStop()
+        case .resetTimer:
+            appState.resetTimer()
+        case .lingerALittle:
+            appState.takeBreakNow()
+        case .snoozePrompt:
+            appState.snoozeIfBreakPromptVisible()
+        }
+        refreshStatusUI()
+        updateCountdownTitle()
     }
     
     private static func isSparkleConfigurationValid() -> Bool {

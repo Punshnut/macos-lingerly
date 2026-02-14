@@ -23,6 +23,10 @@ enum TimingSettingsKeys {
     static let resetOnUnlock = "lingerly.timer.reset.on.unlock"
     static let menuBarTimerEnabled = "lingerly.menu.timer.enabled"
     static let overlayStyle = "lingerly.overlay.style"
+    static let hotkeyStartStop = "lingerly.hotkey.startStop"
+    static let hotkeyResetTimer = "lingerly.hotkey.resetTimer"
+    static let hotkeyLingerALittle = "lingerly.hotkey.lingerALittle"
+    static let hotkeySnoozePrompt = "lingerly.hotkey.snoozePrompt"
 }
 
 /// Thin wrapper around UserDefaults for timing configuration.

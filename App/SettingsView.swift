@@ -235,11 +235,7 @@ private struct SettingsDetailView: View {
                 detail: l("settings.placeholder.widgets.detail")
             )
         case .shortcuts:
-            PlaceholderSettingsView(
-                title: l("settings.placeholder.shortcuts.title"),
-                subtitle: l("settings.placeholder.shortcuts.subtitle"),
-                detail: l("settings.placeholder.shortcuts.detail")
-            )
+            ShortcutsSettingsView()
         case .automation:
             AutomationSettingsView()
         case .about:
@@ -1074,6 +1070,234 @@ private struct AppearanceSettingsView: View {
                 }
             }
         }
+    }
+}
+
+private struct ShortcutsSettingsView: View {
+    @AppStorage(TimingSettingsKeys.hotkeyStartStop) private var startStopShortcut = ""
+    @AppStorage(TimingSettingsKeys.hotkeyResetTimer) private var resetTimerShortcut = ""
+    @AppStorage(TimingSettingsKeys.hotkeyLingerALittle) private var lingerALittleShortcut = ""
+    @AppStorage(TimingSettingsKeys.hotkeySnoozePrompt) private var snoozePromptShortcut = ""
+
+    var body: some View {
+        SettingsScrollView(
+            title: l("settings.shortcuts.title"),
+            subtitle: l("settings.shortcuts.subtitle")
+        ) {
+            SettingsCard(
+                l("settings.shortcuts.card.title"),
+                subtitle: l("settings.shortcuts.card.subtitle")
+            ) {
+                SettingsRow(
+                    icon: "playpause.fill",
+                    title: l("settings.shortcuts.start_stop.title"),
+                    subtitle: l("settings.shortcuts.start_stop.subtitle")
+                ) {
+                    HotkeyRecorderField(shortcutValue: $startStopShortcut)
+                        .frame(width: 220)
+                }
+
+                SettingsDivider()
+
+                SettingsRow(
+                    icon: "arrow.counterclockwise.circle.fill",
+                    title: l("settings.shortcuts.reset_timer.title"),
+                    subtitle: l("settings.shortcuts.reset_timer.subtitle")
+                ) {
+                    HotkeyRecorderField(shortcutValue: $resetTimerShortcut)
+                        .frame(width: 220)
+                }
+
+                SettingsDivider()
+
+                SettingsRow(
+                    icon: "sparkles",
+                    title: l("settings.shortcuts.linger.title"),
+                    subtitle: l("settings.shortcuts.linger.subtitle")
+                ) {
+                    HotkeyRecorderField(shortcutValue: $lingerALittleShortcut)
+                        .frame(width: 220)
+                }
+
+                SettingsDivider()
+
+                SettingsRow(
+                    icon: "moon.zzz.fill",
+                    title: l("settings.shortcuts.snooze_prompt.title"),
+                    subtitle: l("settings.shortcuts.snooze_prompt.subtitle")
+                ) {
+                    HotkeyRecorderField(shortcutValue: $snoozePromptShortcut)
+                        .frame(width: 220)
+                }
+            }
+        }
+    }
+}
+
+private struct HotkeyRecorderField: NSViewRepresentable {
+    @Binding var shortcutValue: String
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeNSView(context: Context) -> HotkeyRecorderView {
+        let view = HotkeyRecorderView()
+        view.onShortcutChange = { [weak coordinator = context.coordinator] shortcut in
+            coordinator?.apply(shortcut: shortcut)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: HotkeyRecorderView, context: Context) {
+        context.coordinator.parent = self
+        nsView.shortcut = HotkeyShortcut(serialized: shortcutValue)
+    }
+
+    @MainActor
+    final class Coordinator {
+        var parent: HotkeyRecorderField
+
+        init(parent: HotkeyRecorderField) {
+            self.parent = parent
+        }
+
+        func apply(shortcut: HotkeyShortcut?) {
+            parent.shortcutValue = shortcut?.serialized ?? ""
+        }
+    }
+}
+
+private final class HotkeyRecorderView: NSView {
+    var onShortcutChange: ((HotkeyShortcut?) -> Void)?
+    var shortcut: HotkeyShortcut? {
+        didSet { updateLabel() }
+    }
+
+    private let label = NSTextField(labelWithString: "")
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: 220, height: 34)
+    }
+
+    override var acceptsFirstResponder: Bool {
+        true
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        needsDisplay = true
+    }
+
+    override func resignFirstResponder() -> Bool {
+        needsDisplay = true
+        return true
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 {
+            // Esc cancels recording without changing the stored shortcut.
+            window?.makeFirstResponder(nil)
+            return
+        }
+
+        if event.keyCode == 51 || event.keyCode == 117 {
+            shortcut = nil
+            onShortcutChange?(nil)
+            window?.makeFirstResponder(nil)
+            return
+        }
+
+        guard let captured = HotkeyShortcut.from(event: event) else {
+            NSSound.beep()
+            return
+        }
+
+        shortcut = captured
+        onShortcutChange?(captured)
+        window?.makeFirstResponder(nil)
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        keyDown(with: event)
+        return true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let roundedRect = NSBezierPath(roundedRect: bounds, xRadius: 11, yRadius: 11)
+        let isFocused = window?.firstResponder === self
+        let isDarkMode = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+
+        let baseTop: NSColor
+        let baseBottom: NSColor
+        if isDarkMode {
+            baseTop = NSColor(calibratedRed: 0.18, green: 0.20, blue: 0.29, alpha: 0.92)
+            baseBottom = NSColor(calibratedRed: 0.14, green: 0.16, blue: 0.24, alpha: 0.92)
+        } else {
+            baseTop = NSColor(calibratedRed: 0.90, green: 0.93, blue: 0.98, alpha: 0.9)
+            baseBottom = NSColor(calibratedRed: 0.83, green: 0.87, blue: 0.95, alpha: 0.9)
+        }
+        let gradient = NSGradient(starting: baseTop, ending: baseBottom)
+        gradient?.draw(in: roundedRect, angle: 90)
+
+        let borderColor: NSColor
+        if isFocused {
+            borderColor = NSColor.controlAccentColor.withAlphaComponent(isDarkMode ? 0.95 : 0.85)
+        } else {
+            borderColor = NSColor.labelColor.withAlphaComponent(isDarkMode ? 0.30 : 0.18)
+        }
+        borderColor.setStroke()
+        roundedRect.lineWidth = isFocused ? 2 : 1
+        roundedRect.stroke()
+
+        super.draw(dirtyRect)
+    }
+
+    private func setup() {
+        wantsLayer = false
+        translatesAutoresizingMaskIntoConstraints = false
+
+        label.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        label.textColor = .labelColor
+        label.alignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            heightAnchor.constraint(equalToConstant: 34),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+
+        updateLabel()
+    }
+
+    private func updateLabel() {
+        let isDarkMode = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        if let shortcut {
+            label.stringValue = shortcut.displayString
+            label.textColor = isDarkMode
+                ? NSColor.white.withAlphaComponent(0.92)
+                : NSColor(calibratedWhite: 0.08, alpha: 0.92)
+        } else {
+            label.stringValue = l("settings.shortcuts.recorder.placeholder")
+            label.textColor = isDarkMode
+                ? NSColor.white.withAlphaComponent(0.55)
+                : NSColor(calibratedWhite: 0.12, alpha: 0.48)
+        }
+        needsDisplay = true
     }
 }
 

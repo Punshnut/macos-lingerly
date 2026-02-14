@@ -298,3 +298,17 @@
 "Check for Updates..." = "Check for Updates...";
 "settings.general.updates.title" = "Updates";
 "settings.general.updates.subtitle" = "Check for a new version of Lingerly.";
+"settings.shortcuts.title" = "Hotkeys";
+"settings.shortcuts.subtitle" = "Click a field to start listening, press Esc to cancel, and press Delete to clear a shortcut.";
+"settings.shortcuts.card.title" = "Global Shortcuts";
+"settings.shortcuts.card.subtitle" = "No defaults are set. Record the shortcuts you want for each action.";
+"settings.shortcuts.start_stop.title" = "Start / Stop";
+"settings.shortcuts.start_stop.subtitle" = "Start reminders, resume, or pause from anywhere.";
+"settings.shortcuts.reset_timer.title" = "Reset Timer";
+"settings.shortcuts.reset_timer.subtitle" = "Restart the current timer cycle.";
+"settings.shortcuts.linger.title" = "Linger a little";
+"settings.shortcuts.linger.subtitle" = "Start a break right now.";
+"settings.shortcuts.snooze_prompt.title" = "Snooze Prompt";
+"settings.shortcuts.snooze_prompt.subtitle" = "Snooze only when a break overlay or due notification is active.";
+"settings.shortcuts.recorder.placeholder" = "Record Shortcut";
+"settings.shortcuts.recorder.unknown_key_format" = "Key %d";
