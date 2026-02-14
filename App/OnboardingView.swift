@@ -4,9 +4,9 @@ import SwiftUI
 struct OnboardingView: View {
     @State private var step = 0
     @AppStorage(OnboardingKeys.completed) private var completed = false
-    @AppStorage(OnboardingKeys.enforcementStyle) private var enforcementStyleRaw = EnforcementStyle.gentle.rawValue
     @AppStorage(OnboardingKeys.allowLockScreen) private var allowLockScreen = false
     @AppStorage(OnboardingKeys.fullscreenBehavior) private var fullscreenBehaviorRaw = FullscreenBehavior.notify.rawValue
+    @AppStorage(OnboardingKeys.alwaysNotificationOnly) private var alwaysNotificationOnly = false
     @AppStorage(OnboardingKeys.preset) private var presetRaw = ReminderPreset.twentyTwentyTwenty.rawValue
     @AppStorage(TimingSettingsKeys.intervalMinutes) private var intervalMinutes = 20
     @AppStorage(TimingSettingsKeys.breakDurationSeconds) private var breakDurationSeconds = 20
@@ -16,10 +16,6 @@ struct OnboardingView: View {
     @AppStorage(TimingSettingsKeys.presetId) private var presetId = "20-20-20"
 
     let onComplete: () -> Void
-
-    private var enforcementStyle: EnforcementStyle {
-        EnforcementStyle(rawValue: enforcementStyleRaw) ?? .gentle
-    }
 
     private var fullscreenBehavior: FullscreenBehavior {
         FullscreenBehavior(rawValue: fullscreenBehaviorRaw) ?? .notify
@@ -49,7 +45,7 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                Button(step == 2 ? String(localized: "Finish") : String(localized: "Next")) {
+                Button(step == 1 ? String(localized: "Finish") : String(localized: "Next")) {
                     handleNext()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -65,44 +61,9 @@ struct OnboardingView: View {
     private func stepView() -> some View {
         switch step {
         case 0:
-            enforcementStep
-        case 1:
             fullscreenStep
         default:
             presetStep
-        }
-    }
-
-    /// Step 1: choose enforcement style and lock-screen option.
-    private var enforcementStep: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "Onboarding Enforcement Title"))
-                .font(.headline)
-            Text(String(localized: "Onboarding Enforcement Subtitle"))
-                .foregroundStyle(.secondary)
-
-            RadioRow(
-                title: String(localized: "Onboarding Enforcement Gentle"),
-                subtitle: String(localized: "Onboarding Enforcement Gentle Detail"),
-                isSelected: enforcementStyle == .gentle
-            ) {
-                enforcementStyleRaw = EnforcementStyle.gentle.rawValue
-                allowLockScreen = false
-            }
-
-            RadioRow(
-                title: String(localized: "Onboarding Enforcement Firm"),
-                subtitle: String(localized: "Onboarding Enforcement Firm Detail"),
-                isSelected: enforcementStyle == .firm
-            ) {
-                enforcementStyleRaw = EnforcementStyle.firm.rawValue
-            }
-
-            Toggle(String(localized: "Onboarding Lock Screen"), isOn: $allowLockScreen)
-                .disabled(enforcementStyle != .firm)
-            Text(String(localized: "Onboarding Lock Screen Detail"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -129,6 +90,16 @@ struct OnboardingView: View {
             ) {
                 fullscreenBehaviorRaw = FullscreenBehavior.interrupt.rawValue
             }
+
+            Toggle(String(localized: "settings.break_prompt.notification_only.title"), isOn: $alwaysNotificationOnly)
+            Text(String(localized: "settings.break_prompt.notification_only.subtitle"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Toggle(String(localized: "Onboarding Lock Screen"), isOn: $allowLockScreen)
+            Text(String(localized: "Onboarding Lock Screen Detail"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -160,7 +131,7 @@ struct OnboardingView: View {
 
     /// Advances steps or completes onboarding.
     private func handleNext() {
-        if step < 2 {
+        if step < 1 {
             withAnimation(.easeInOut(duration: 0.2)) {
                 step += 1
             }

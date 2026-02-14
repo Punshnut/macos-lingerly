@@ -74,6 +74,13 @@ final class AppStateController {
         }
         engine.shouldStartBreak = { [weak self] in
             guard let self else { return true }
+            if self.shouldAlwaysNotifyOnly() {
+                if !self.pendingFullscreenBreak {
+                    self.pendingFullscreenBreak = true
+                    self.notificationManager.showBreakDueNotification()
+                }
+                return false
+            }
             if self.shouldDeferForFullscreen() {
                 if !self.pendingFullscreenBreak {
                     self.pendingFullscreenBreak = true
@@ -104,6 +111,9 @@ final class AppStateController {
         fullscreenDetector.onChange = { [weak self] isFullscreen in
             guard let self else { return }
             if !isFullscreen && self.pendingFullscreenBreak {
+                if self.shouldAlwaysNotifyOnly() {
+                    return
+                }
                 self.pendingFullscreenBreak = false
                 self.engine.attemptStartBreak()
             } else if isFullscreen && self.state == .breakActive && self.shouldDeferForFullscreen() {
@@ -124,6 +134,10 @@ final class AppStateController {
                 guard let self else { return }
                 self.engine.updateConfiguration(self.loadConfiguration())
                 self.refreshSmartPauseAfterSettingsChange()
+                if self.pendingFullscreenBreak && !self.shouldAlwaysNotifyOnly() && !self.shouldDeferForFullscreen() {
+                    self.pendingFullscreenBreak = false
+                    self.engine.attemptStartBreak()
+                }
             }
         }
 
@@ -265,6 +279,7 @@ final class AppStateController {
 
     /// Skips the current or pending break and records analytics.
     func skipBreak(shouldHideOverlay: Bool = true) {
+        pendingFullscreenBreak = false
         if isRunning {
             engine.skipBreak()
         } else {
@@ -338,6 +353,14 @@ final class AppStateController {
             overlayController.hide()
         case .breakActive:
             startPulse()
+            if shouldAlwaysNotifyOnly() {
+                if !pendingFullscreenBreak {
+                    pendingFullscreenBreak = true
+                    notificationManager.showBreakDueNotification()
+                }
+                engine.deferActiveBreakAsDue()
+                return
+            }
             if !shouldDeferForFullscreen() {
                 let breakDuration = TimeInterval(max(settingsStore.breakDurationSeconds, 5))
                 overlayController.show(
@@ -606,18 +629,20 @@ final class AppStateController {
 
     /// Determines whether breaks should be deferred while fullscreen apps are active.
     private func shouldDeferForFullscreen() -> Bool {
+        if shouldAlwaysNotifyOnly() { return true }
         let behaviorRaw = UserDefaults.standard.string(forKey: OnboardingKeys.fullscreenBehavior) ?? FullscreenBehavior.notify.rawValue
         let behavior = FullscreenBehavior(rawValue: behaviorRaw) ?? .notify
         if behavior == .interrupt { return false }
         return fullscreenDetector.isFullscreen
     }
 
-    /// Checks onboarding settings to see if lock screen enforcement is enabled.
+    /// Checks onboarding settings to see if lock screen option is enabled.
     private func isLockScreenAllowed() -> Bool {
-        let styleRaw = UserDefaults.standard.string(forKey: OnboardingKeys.enforcementStyle) ?? EnforcementStyle.gentle.rawValue
-        let style = EnforcementStyle(rawValue: styleRaw) ?? .gentle
-        if style != .firm { return false }
         return UserDefaults.standard.bool(forKey: OnboardingKeys.allowLockScreen)
+    }
+
+    private func shouldAlwaysNotifyOnly() -> Bool {
+        UserDefaults.standard.bool(forKey: OnboardingKeys.alwaysNotificationOnly)
     }
 
     /// Locks the screen if the current policy allows it.

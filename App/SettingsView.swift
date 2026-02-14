@@ -681,8 +681,7 @@ private struct PresetSegmentedControl: NSViewRepresentable {
 
 private struct SmartPauseSettingsView: View {
     @AppStorage(OnboardingKeys.fullscreenBehavior) private var fullscreenBehaviorRaw = FullscreenBehavior.notify.rawValue
-    @AppStorage(OnboardingKeys.enforcementStyle) private var enforcementStyleRaw = EnforcementStyle.gentle.rawValue
-    @AppStorage(OnboardingKeys.allowLockScreen) private var allowLockScreen = false
+    @AppStorage(OnboardingKeys.alwaysNotificationOnly) private var alwaysNotificationOnly = false
     @AppStorage(TimingSettingsKeys.mediaPauseEnabled) private var mediaPauseEnabled = false
     @AppStorage(TimingSettingsKeys.pauseForAppsEnabled) private var pauseForAppsEnabled = false
     @AppStorage(TimingSettingsKeys.smartPauseResumeBehavior) private var smartPauseResumeBehaviorRaw = SmartPauseResumeBehavior.resumeTimer.rawValue
@@ -696,6 +695,15 @@ private struct SmartPauseSettingsView: View {
             title: l("settings.placeholder.auto_pause.title"),
             subtitle: l("settings.placeholder.auto_pause.subtitle")
         ) {
+            SettingsCard(l("settings.enforcement.card.title"), subtitle: l("settings.enforcement.card.subtitle")) {
+                SettingsToggleRow(
+                    icon: "bell.badge",
+                    title: l("settings.break_prompt.notification_only.title"),
+                    subtitle: l("settings.break_prompt.notification_only.subtitle"),
+                    isOn: $alwaysNotificationOnly
+                )
+            }
+
             SettingsCard(l("settings.fullscreen.card.title"), subtitle: l("settings.fullscreen.card.subtitle")) {
                 SettingsRow(
                     icon: "rectangle.inset.filled.on.rectangle",
@@ -709,34 +717,8 @@ private struct SmartPauseSettingsView: View {
                     .pickerStyle(.segmented)
                     .labelsHidden()
                     .frame(maxWidth: 220)
+                    .disabled(alwaysNotificationOnly)
                 }
-            }
-
-            SettingsCard(l("settings.enforcement.card.title"), subtitle: l("settings.enforcement.card.subtitle")) {
-                SettingsRow(
-                    icon: "shield.lefthalf.filled",
-                    title: l("settings.enforcement.strength.title"),
-                    subtitle: l("settings.enforcement.strength.subtitle")
-                ) {
-                    Picker("", selection: $enforcementStyleRaw) {
-                        Text(l("settings.enforcement.strength.option_gentle")).tag(EnforcementStyle.gentle.rawValue)
-                        Text(l("settings.enforcement.strength.option_firm")).tag(EnforcementStyle.firm.rawValue)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(maxWidth: 220)
-                }
-
-                SettingsDivider()
-
-                SettingsToggleRow(
-                    icon: "lock.fill",
-                    title: l("settings.enforcement.lock_screen.title"),
-                    subtitle: l("settings.enforcement.lock_screen.subtitle"),
-                    badge: l("settings.badge.beta"),
-                    isOn: $allowLockScreen,
-                    isEnabled: isFirmEnforcement()
-                )
             }
 
             SettingsCard(l("settings.unlock.card.title"), subtitle: l("settings.unlock.card.subtitle")) {
@@ -814,10 +796,6 @@ private struct SmartPauseSettingsView: View {
         .onChange(of: pauseAppRules) { newRules in
             settingsStore.pauseForAppsRules = newRules
         }
-    }
-
-    private func isFirmEnforcement() -> Bool {
-        EnforcementStyle(rawValue: enforcementStyleRaw) == .firm
     }
 
     private var hasAnySmartPauseSource: Bool {
@@ -1017,6 +995,7 @@ private struct WellnessSettingsView: View {
 private struct AppearanceSettingsView: View {
     @AppStorage(TimingSettingsKeys.menuBarTimerEnabled) private var menuBarTimerEnabled = false
     @AppStorage(TimingSettingsKeys.overlayStyle) private var overlayStyleRaw = OverlayStyle.modernTahoe.rawValue
+    @AppStorage(OnboardingKeys.allowLockScreen) private var allowLockScreen = false
 
     var body: some View {
         SettingsScrollView(
@@ -1048,6 +1027,15 @@ private struct AppearanceSettingsView: View {
                     .labelsHidden()
                     .frame(maxWidth: 260)
                 }
+
+                SettingsDivider()
+
+                SettingsToggleRow(
+                    icon: "lock.fill",
+                    title: l("settings.enforcement.lock_screen.title"),
+                    subtitle: l("settings.enforcement.lock_screen.subtitle"),
+                    isOn: $allowLockScreen
+                )
             }
 
             SettingsCard(l("settings.placeholder.card.title")) {
