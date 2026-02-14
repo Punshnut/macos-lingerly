@@ -55,6 +55,7 @@ final class AppStateController {
     private var defaultsObserver: NSObjectProtocol?
     private var reduceMotionObserver: NSObjectProtocol?
     private var reduceMotionEnabled = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    private var overlayVisibilityValidationTask: Task<Void, Never>?
 
     /// Wires engine callbacks, notification actions, and system observers.
     init() {
@@ -324,6 +325,8 @@ final class AppStateController {
     private func handleStateTransition() {
         switch state {
         case .idle, .running, .breakDue:
+            overlayVisibilityValidationTask?.cancel()
+            overlayVisibilityValidationTask = nil
             stopPulse()
             overlayController.hide()
         case .breakActive:
@@ -343,9 +346,33 @@ final class AppStateController {
                         self?.skipBreak(shouldHideOverlay: false)
                     }
                 )
+                scheduleFullscreenOverlayFallbackIfSuppressed()
             }
         }
         onStateChange?(state)
+    }
+
+    /// Falls back to a due notification when fullscreen overlay rendering is suppressed by the system.
+    private func scheduleFullscreenOverlayFallbackIfSuppressed() {
+        overlayVisibilityValidationTask?.cancel()
+        overlayVisibilityValidationTask = nil
+        guard fullscreenDetector.isFullscreen else { return }
+
+        overlayVisibilityValidationTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            await MainActor.run {
+                guard let self else { return }
+                guard self.state == .breakActive else { return }
+                guard self.fullscreenDetector.isFullscreen else { return }
+                guard !self.shouldDeferForFullscreen() else { return }
+                guard !self.overlayController.isLikelyVisible else { return }
+
+                self.overlayController.hide(animated: false)
+                self.engine.deferActiveBreakAsDue()
+                self.pendingFullscreenBreak = true
+                self.notificationManager.showBreakDueNotification()
+            }
+        }
     }
 
     /// Updates media playback pause condition.

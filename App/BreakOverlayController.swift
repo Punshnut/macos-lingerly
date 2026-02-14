@@ -17,6 +17,13 @@ final class BreakOverlayController {
     private var exitTask: Task<Void, Never>?
     private var isSkipSequenceActive = false
 
+    /// Heuristic visibility check used for fullscreen fallback handling.
+    var isLikelyVisible: Bool {
+        windows.contains { window in
+            window.isVisible && window.occlusionState.contains(.visible)
+        }
+    }
+
     /// Presents (or updates) an overlay window on every screen.
     func show(
         allowLockScreen: Bool,

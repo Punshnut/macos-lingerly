@@ -1,6 +1,6 @@
 // Menu
-"Start" = "Start Lingerly reminders";
-"Stop" = "Pause Lingerly reminders";
+"Start" = "Start Lingerly";
+"Stop" = "Pause Lingerly";
 "Snooze 1 min" = "Snooze %d min";
 "Take a Breath, Look Outside" = "Take a breath and look away";
 "Next pause in %@" = "Next break in %@";
@@ -71,7 +71,7 @@
 "Snooze Duration" = "Snooze";
 "Fullscreen Behavior" = "Fullscreen";
 "Fullscreen Notify" = "Notify only";
-"Fullscreen Interrupt" = "Interrupt";
+"Fullscreen Interrupt" = "Start now";
 "Enforcement" = "Enforcement";
 "Enforcement Style" = "Style";
 "Enforcement Gentle" = "Hold to skip";
@@ -191,10 +191,10 @@
 "settings.fullscreen.interruption.label" = "Fullscreen behavior";
 "settings.fullscreen.interruption.option_notify" = "Send heads-up";
 "settings.fullscreen.interruption.option_interrupt" = "Start break now";
-"settings.enforcement.card.title" = "Break enforcement";
-"settings.enforcement.card.subtitle" = "Choose how strongly breaks should be enforced.";
+"settings.enforcement.card.title" = "Break guidance";
+"settings.enforcement.card.subtitle" = "Choose how breaks are gently guided.";
 "settings.enforcement.strength.title" = "Break style";
-"settings.enforcement.strength.subtitle" = "Use gentle reminders or a firmer full-screen pause.";
+"settings.enforcement.strength.subtitle" = "Use gentle cues or a more focused full-screen pause.";
 "settings.enforcement.strength.label" = "Break style";
 "settings.enforcement.strength.option_gentle" = "Gentle";
 "settings.enforcement.strength.option_firm" = "Firm";
@@ -210,7 +210,7 @@
 "settings.about.created_by" = "Created by Jan Feuerbacher";
 "settings.about.copyright" = "Copyright 2026 Jan Feuerbacher";
 "settings.about.support.title" = "Support Lingerly";
-"settings.about.support.subtitle" = "If it helps your day, your support helps the project grow.";
+"settings.about.support.subtitle" = "If Lingerly helps your day, your support helps the project grow.";
 "settings.about.support.body" = "Every contribution helps fund updates and polish.";
 "settings.about.kofi_button" = "Support on Ko-fi";
 "settings.about.github_button" = "GitHub Project";
@@ -279,7 +279,7 @@
 "settings.wellness.workout.subtitle" = "Suggests a short workout or mobility set when it fits your day.";
 
 // Wellness Reminder Composition (linking phrases)
-"Wellness Reminder Lead In 1" = "if it helps, you could";
+"Wellness Reminder Lead In 1" = "if you like, you could";
 "Wellness Reminder Lead In 2" = "when you're ready, try to";
 "Wellness Reminder Lead In 3" = "and if you can";
 "Wellness Reminder Joiner 1" = "and";

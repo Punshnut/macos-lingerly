@@ -118,4 +118,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             break
         }
     }
+
+    /// Ensures banners are still presented when the app is currently active.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
+    }
 }

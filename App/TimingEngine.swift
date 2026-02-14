@@ -247,6 +247,18 @@ final class TimingEngine {
         state = .breakDue
     }
 
+    /// Converts an active break back into a pending break-due state.
+    func deferActiveBreakAsDue() {
+        guard state == .breakActive else { return }
+        pendingBreak = true
+        breakTimer?.invalidate()
+        breakTimer = nil
+        breakEndDate = nil
+        dueTimer?.invalidate()
+        dueTimer = nil
+        state = .breakDue
+    }
+
     /// Clears pending breaks and resets counters without stopping the engine.
     func resetCycle() {
         pendingBreak = false
