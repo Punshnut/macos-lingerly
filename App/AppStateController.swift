@@ -56,9 +56,16 @@ final class AppStateController {
     private var reduceMotionObserver: NSObjectProtocol?
     private var reduceMotionEnabled = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     private var overlayVisibilityValidationTask: Task<Void, Never>?
+    private var lastMediaPauseEnabled: Bool
+    private var lastPauseForAppsEnabled: Bool
+    private var lastPauseForAppsRules: [PauseAppRule]
 
     /// Wires engine callbacks, notification actions, and system observers.
     init() {
+        lastMediaPauseEnabled = settingsStore.mediaPauseEnabled
+        lastPauseForAppsEnabled = settingsStore.pauseForAppsEnabled
+        lastPauseForAppsRules = settingsStore.pauseForAppsRules
+
         engine.onStateChange = { [weak self] engineState in
             self?.state = self?.mapState(engineState) ?? .idle
         }
@@ -116,7 +123,7 @@ final class AppStateController {
             Task { @MainActor in
                 guard let self else { return }
                 self.engine.updateConfiguration(self.loadConfiguration())
-                self.refreshSmartPause()
+                self.refreshSmartPauseAfterSettingsChange()
             }
         }
 
@@ -417,11 +424,55 @@ final class AppStateController {
 
     /// Re-evaluates smart pause behavior after settings changes.
     private func refreshSmartPause() {
-        handleMediaPlaybackChange(isPlaying: mediaPlaybackMonitor.isPlaying)
-        handleRunningAppsChange(runningBundleIDs: runningAppsMonitor.runningBundleIdentifiers)
+        isMediaConditionActive = settingsStore.mediaPauseEnabled && mediaPlaybackMonitor.isPlaying
+        isAppConditionActive = appConditionIsActive(
+            runningBundleIDs: runningAppsMonitor.runningBundleIdentifiers,
+            pauseForAppsEnabled: settingsStore.pauseForAppsEnabled,
+            pauseForAppsRules: settingsStore.pauseForAppsRules
+        )
+        applySmartPauseState()
     }
 
-    private func applySmartPauseState() {
+    /// Re-evaluates smart pause after defaults changes and resumes immediately
+    /// if an active smart-pause source was disabled by the user.
+    private func refreshSmartPauseAfterSettingsChange() {
+        let previousMediaConditionActive = isMediaConditionActive
+        let previousAppConditionActive = isAppConditionActive
+
+        let newMediaPauseEnabled = settingsStore.mediaPauseEnabled
+        let newPauseForAppsEnabled = settingsStore.pauseForAppsEnabled
+        let newPauseForAppsRules = settingsStore.pauseForAppsRules
+        let runningBundleIDs = runningAppsMonitor.runningBundleIdentifiers
+        let previousTrackedAppIDs = Set(lastPauseForAppsRules.map { $0.bundleIdentifier.lowercased() })
+        let newTrackedAppIDs = Set(newPauseForAppsRules.map { $0.bundleIdentifier.lowercased() })
+        let appRulesChanged = previousTrackedAppIDs != newTrackedAppIDs
+
+        let mediaSourceDisabledWhileActive = previousMediaConditionActive && lastMediaPauseEnabled && !newMediaPauseEnabled
+        let appSourceDisabledWhileActive = previousAppConditionActive && (
+            (lastPauseForAppsEnabled && !newPauseForAppsEnabled) ||
+            (appRulesChanged && !appConditionIsActive(
+                runningBundleIDs: runningBundleIDs,
+                pauseForAppsEnabled: newPauseForAppsEnabled,
+                pauseForAppsRules: newPauseForAppsRules
+            ))
+        )
+        let shouldBypassCooldown = mediaSourceDisabledWhileActive || appSourceDisabledWhileActive
+
+        isMediaConditionActive = newMediaPauseEnabled && mediaPlaybackMonitor.isPlaying
+        isAppConditionActive = appConditionIsActive(
+            runningBundleIDs: runningBundleIDs,
+            pauseForAppsEnabled: newPauseForAppsEnabled,
+            pauseForAppsRules: newPauseForAppsRules
+        )
+
+        lastMediaPauseEnabled = newMediaPauseEnabled
+        lastPauseForAppsEnabled = newPauseForAppsEnabled
+        lastPauseForAppsRules = newPauseForAppsRules
+
+        applySmartPauseState(bypassCooldownIfConditionsCleared: shouldBypassCooldown)
+    }
+
+    private func applySmartPauseState(bypassCooldownIfConditionsCleared: Bool = false) {
         let shouldPause = isMediaConditionActive || isAppConditionActive
         if shouldPause {
             cancelSmartPauseCooldown()
@@ -440,6 +491,10 @@ final class AppStateController {
         }
 
         guard isRunning, state == .running, isSmartPaused else { return }
+        if bypassCooldownIfConditionsCleared {
+            resumeFromSmartPauseAfterCooldown()
+            return
+        }
         guard smartPauseCooldownTimer == nil else { return }
         let cooldownSeconds = TimeInterval(max(settingsStore.smartPauseCooldownMinutes, 1) * 60)
         smartPauseCooldownTimer = Timer.scheduledTimer(withTimeInterval: cooldownSeconds, repeats: false) { [weak self] _ in
@@ -447,6 +502,16 @@ final class AppStateController {
                 self?.resumeFromSmartPauseAfterCooldown()
             }
         }
+    }
+
+    private func appConditionIsActive(
+        runningBundleIDs: Set<String>,
+        pauseForAppsEnabled: Bool,
+        pauseForAppsRules: [PauseAppRule]
+    ) -> Bool {
+        guard pauseForAppsEnabled else { return false }
+        let trackedIDs = Set(pauseForAppsRules.map { $0.bundleIdentifier.lowercased() })
+        return !trackedIDs.isEmpty && !trackedIDs.isDisjoint(with: runningBundleIDs)
     }
 
     private func resumeAfterSnooze() {
