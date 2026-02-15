@@ -31,12 +31,7 @@ enum StatusIconRenderer {
             drawPause(at: center, barHeight: 8.0, barWidth: 2.2)
 
         case .running:
-            let path = NSBezierPath()
-            path.lineWidth = 1.6
-            path.lineCapStyle = .round
-            path.move(to: CGPoint(x: center.x - 5.5, y: center.y + 0.5))
-            path.line(to: CGPoint(x: center.x + 5.5, y: center.y + 0.5))
-            path.stroke()
+            drawPlay(at: center, width: 8.0, height: 8.8)
 
         case .paused:
             drawPause(at: center, barHeight: 8.0, barWidth: 2.2)
@@ -85,5 +80,15 @@ enum StatusIconRenderer {
         )
         NSBezierPath(roundedRect: leftBar, xRadius: barCorner, yRadius: barCorner).fill()
         NSBezierPath(roundedRect: rightBar, xRadius: barCorner, yRadius: barCorner).fill()
+    }
+
+    private static func drawPlay(at center: CGPoint, width: CGFloat, height: CGFloat) {
+        let halfHeight = height / 2
+        let path = NSBezierPath()
+        path.move(to: CGPoint(x: center.x - width / 2, y: center.y - halfHeight + 0.5))
+        path.line(to: CGPoint(x: center.x + width / 2, y: center.y + 0.5))
+        path.line(to: CGPoint(x: center.x - width / 2, y: center.y + halfHeight + 0.5))
+        path.close()
+        path.fill()
     }
 }
