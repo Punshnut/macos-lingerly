@@ -135,7 +135,7 @@ struct BreakOverlayView: View {
                         .accessibilityLabel(String(localized: "Overlay Hold To Skip"))
                         .accessibilityHint(String(localized: "Overlay Hold To Skip Hint"))
                         .accessibilitySortPriority(2)
-                        .focusable(true)
+                        .focusable(false)
 
                     if showLockScreen {
                         Button(String(localized: "Overlay Lock Screen"), action: onLockScreen)
