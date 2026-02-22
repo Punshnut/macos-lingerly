@@ -246,7 +246,7 @@ private struct SettingsDetailView: View {
 
 private struct GeneralSettingsView: View {
     let appState: AppStateController
-    @AppStorage(TimingSettingsKeys.presetId) private var presetId = "20-20-20"
+    @StateObject private var launchAtLogin = LaunchAtLoginController()
 
     var body: some View {
         SettingsScrollView(
@@ -254,15 +254,15 @@ private struct GeneralSettingsView: View {
             subtitle: l("settings.general.subtitle")
         ) {
             SettingsCard(l("settings.overview.card.title"), subtitle: l("settings.overview.card.subtitle")) {
-                SettingsRow(
-                    icon: "dial.high",
-                    title: l("settings.overview.preset.title"),
-                    subtitle: l("settings.overview.preset.subtitle")
-                ) {
-                    Text(presetLabel)
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
+                SettingsToggleRow(
+                    icon: "power.circle.fill",
+                    title: l("settings.general.autostart.title"),
+                    subtitle: l("settings.general.autostart.subtitle"),
+                    isOn: Binding(
+                        get: { launchAtLogin.isEnabled },
+                        set: { launchAtLogin.setEnabled($0) }
+                    )
+                )
 
                 SettingsDivider()
 
@@ -320,17 +320,6 @@ private struct GeneralSettingsView: View {
                     .disabled(!updaterAvailable)
                 }
             }
-        }
-    }
-
-    private var presetLabel: String {
-        switch presetId {
-        case "20-20-20":
-            return l("settings.general.timing_preset.option_20_20_20")
-        case "45-15":
-            return l("settings.general.timing_preset.option_45_15")
-        default:
-            return l("settings.general.timing_preset.option_custom")
         }
     }
 

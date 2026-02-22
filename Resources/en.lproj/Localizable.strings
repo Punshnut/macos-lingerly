@@ -136,6 +136,8 @@
 "settings.general.current_cycle.break" = "%@ break";
 "settings.general.next_pause.title" = "Next Pause";
 "settings.general.next_pause.subtitle" = "Time left until your next break.";
+"settings.general.autostart.title" = "Start at login";
+"settings.general.autostart.subtitle" = "Launch Lingerly automatically when you sign in to your Mac.";
 "settings.general.menubar_timer.title" = "Menu Bar Timer";
 "settings.general.menubar_timer.subtitle" = "Show the countdown in the menu bar.";
 "settings.general.actions.title" = "Quick Actions";

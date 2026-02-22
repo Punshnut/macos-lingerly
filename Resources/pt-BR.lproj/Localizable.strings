@@ -294,3 +294,6 @@
 "settings.shortcuts.recorder.unknown_key_format" = "Key %d";
 "settings.break_prompt.notification_only.title" = "Always show notification only";
 "settings.break_prompt.notification_only.subtitle" = "Never show the full-screen break overlay. Breaks are announced by notification only.";
+
+"settings.general.autostart.title" = "Start at login";
+"settings.general.autostart.subtitle" = "Launch Lingerly automatically when you sign in to your Mac.";
