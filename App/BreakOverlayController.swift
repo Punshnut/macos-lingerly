@@ -47,6 +47,7 @@ final class BreakOverlayController {
             windows = screens.map { screen in
                 let contentView = BreakOverlayView(
                     showLockScreen: allowLockScreen,
+                    breakDuration: breakDuration,
                     breakEndDate: breakEndDate,
                     onLockScreen: onLockScreen,
                     onSnooze: onSnooze,
@@ -87,6 +88,7 @@ final class BreakOverlayController {
                 if let hosting = window.contentViewController as? NSHostingController<BreakOverlayView> {
                     hosting.rootView = BreakOverlayView(
                         showLockScreen: allowLockScreen,
+                        breakDuration: breakDuration,
                         breakEndDate: breakEndDate,
                         onLockScreen: onLockScreen,
                         onSnooze: onSnooze,

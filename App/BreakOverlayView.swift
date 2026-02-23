@@ -3,6 +3,7 @@ import SwiftUI
 /// Full-screen SwiftUI overlay presented during a break.
 struct BreakOverlayView: View {
     let showLockScreen: Bool
+    let breakDuration: TimeInterval
     let breakEndDate: Date
     let onLockScreen: () -> Void
     let onSnooze: () -> Void
@@ -224,7 +225,23 @@ struct BreakOverlayView: View {
 
     /// Calculates remaining break seconds at a given timestamp.
     private func remainingSeconds(at date: Date) -> Int {
-        let remaining = breakEndDate.timeIntervalSince(date)
+        // 1312 easter egg: freeze 13:12 for one extra second, then continue normally.
+        let displayDate: Date
+        if breakDuration >= 840 {
+            let freezeStart = breakEndDate.addingTimeInterval(-792)
+            let freezeEnd = freezeStart.addingTimeInterval(1)
+            if date >= freezeStart && date < freezeEnd {
+                displayDate = freezeStart
+            } else if date >= freezeEnd {
+                displayDate = date.addingTimeInterval(-1)
+            } else {
+                displayDate = date
+            }
+        } else {
+            displayDate = date
+        }
+
+        let remaining = breakEndDate.timeIntervalSince(displayDate)
         return max(Int(ceil(remaining)), 0)
     }
 

@@ -62,6 +62,7 @@ final class AppStateController {
 
     /// Wires engine callbacks, notification actions, and system observers.
     init() {
+        Self.migrateLegacyFullscreenBehaviorValueIfNeeded()
         lastMediaPauseEnabled = settingsStore.mediaPauseEnabled
         lastPauseForAppsEnabled = settingsStore.pauseForAppsEnabled
         lastPauseForAppsRules = settingsStore.pauseForAppsRules
@@ -75,10 +76,8 @@ final class AppStateController {
         engine.shouldStartBreak = { [weak self] in
             guard let self else { return true }
             if self.shouldAlwaysNotifyOnly() {
-                if !self.pendingFullscreenBreak {
-                    self.pendingFullscreenBreak = true
-                    self.notificationManager.showBreakDueNotification()
-                }
+                self.pendingFullscreenBreak = true
+                self.notificationManager.showBreakDueNotification()
                 return false
             }
             if self.shouldDeferForFullscreen() {
@@ -354,14 +353,15 @@ final class AppStateController {
         case .breakActive:
             startPulse()
             if shouldAlwaysNotifyOnly() {
-                if !pendingFullscreenBreak {
-                    pendingFullscreenBreak = true
-                    notificationManager.showBreakDueNotification()
-                }
+                NSLog("Lingerly break routing: notification-only mode active")
+                pendingFullscreenBreak = true
+                notificationManager.showBreakDueNotification()
                 engine.deferActiveBreakAsDue()
                 return
             }
             if !shouldDeferForFullscreen() {
+                NSLog("Lingerly break routing: presenting fullscreen overlay")
+                let startedWhileFullscreen = fullscreenDetector.isFullscreen
                 let breakDuration = TimeInterval(max(settingsStore.breakDurationSeconds, 5))
                 overlayController.show(
                     allowLockScreen: isLockScreenAllowed(),
@@ -376,24 +376,23 @@ final class AppStateController {
                         self?.skipBreak(shouldHideOverlay: false)
                     }
                 )
-                scheduleFullscreenOverlayFallbackIfSuppressed()
+                scheduleFullscreenOverlayFallbackIfSuppressed(startedWhileFullscreen: startedWhileFullscreen)
             }
         }
         onStateChange?(state)
     }
 
     /// Falls back to a due notification when fullscreen overlay rendering is suppressed by the system.
-    private func scheduleFullscreenOverlayFallbackIfSuppressed() {
+    private func scheduleFullscreenOverlayFallbackIfSuppressed(startedWhileFullscreen: Bool) {
         overlayVisibilityValidationTask?.cancel()
         overlayVisibilityValidationTask = nil
-        guard fullscreenDetector.isFullscreen else { return }
+        guard startedWhileFullscreen else { return }
 
         overlayVisibilityValidationTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 350_000_000)
             await MainActor.run {
                 guard let self else { return }
                 guard self.state == .breakActive else { return }
-                guard self.fullscreenDetector.isFullscreen else { return }
                 guard !self.shouldDeferForFullscreen() else { return }
                 guard !self.overlayController.isLikelyVisible else { return }
 
@@ -630,10 +629,36 @@ final class AppStateController {
     /// Determines whether breaks should be deferred while fullscreen apps are active.
     private func shouldDeferForFullscreen() -> Bool {
         if shouldAlwaysNotifyOnly() { return true }
-        let behaviorRaw = UserDefaults.standard.string(forKey: OnboardingKeys.fullscreenBehavior) ?? FullscreenBehavior.notify.rawValue
-        let behavior = FullscreenBehavior(rawValue: behaviorRaw) ?? .notify
+        let behavior = fullscreenBehaviorPreference()
         if behavior == .interrupt { return false }
         return fullscreenDetector.isFullscreen
+    }
+
+    /// Reads fullscreen behavior with compatibility for legacy raw values.
+    private func fullscreenBehaviorPreference() -> FullscreenBehavior {
+        let defaults = UserDefaults.standard
+        let raw = (defaults.string(forKey: OnboardingKeys.fullscreenBehavior) ?? FullscreenBehavior.notify.rawValue)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if raw == FullscreenBehavior.interrupt.rawValue || raw == "overlay" {
+            return .interrupt
+        }
+        return .notify
+    }
+
+    /// Migrates legacy stored fullscreen behavior values to current raw values.
+    private static func migrateLegacyFullscreenBehaviorValueIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard let raw = defaults.string(forKey: OnboardingKeys.fullscreenBehavior)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() else { return }
+
+        if raw == "overlay" {
+            defaults.set(FullscreenBehavior.interrupt.rawValue, forKey: OnboardingKeys.fullscreenBehavior)
+        } else if raw == "notification" {
+            defaults.set(FullscreenBehavior.notify.rawValue, forKey: OnboardingKeys.fullscreenBehavior)
+        }
     }
 
     /// Checks onboarding settings to see if lock screen option is enabled.
