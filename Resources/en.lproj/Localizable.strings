@@ -271,6 +271,11 @@
 "Wellness Reminder Joiner 3" = "and also";
 
 "Timer paused at %@" = "Timer paused at %@";
+"smart_pause.menu.prefix_format" = "(%@) %@";
+"smart_pause.code.base" = "P";
+"smart_pause.code.media" = "M";
+"smart_pause.code.apps" = "X";
+"smart_pause.code.schedule" = "S";
 
 "Settings" = "Settings";
 "Lingerly isn't available right now." = "Lingerly isn't available right now.";

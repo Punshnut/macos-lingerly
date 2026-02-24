@@ -360,6 +360,24 @@ final class AppStateController {
         return engine.timeUntilNextBreak(at: date)
     }
 
+    /// Returns a short smart-pause code for UI labels, for example "PM" or "PS".
+    /// Falls back to the base auto-pause code while cooldown is active.
+    func smartPauseCode() -> String? {
+        guard isRunning, isSmartPaused else { return nil }
+
+        let baseCode = String(localized: "smart_pause.code.base", defaultValue: "P")
+        let mediaCode = String(localized: "smart_pause.code.media", defaultValue: "M")
+        let appsCode = String(localized: "smart_pause.code.apps", defaultValue: "X")
+        let scheduleCode = String(localized: "smart_pause.code.schedule", defaultValue: "S")
+
+        var reasons = ""
+        if isMediaConditionActive { reasons += mediaCode }
+        if isAppConditionActive { reasons += appsCode }
+        if isScheduleConditionActive { reasons += scheduleCode }
+
+        return baseCode + reasons
+    }
+
     /// Runs side effects when the engine state changes.
     private func handleStateTransition() {
         switch state {

@@ -340,10 +340,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .paused:
             let remaining = appState.pausedCountdownSeconds(at: date) ?? 0
             let countdown = AppStateController.formattedCountdown(remaining)
-            return String(format: String(localized: "Timer paused at %@"), countdown)
+            let pausedTitle = String(format: String(localized: "Timer paused at %@"), countdown)
+            return decorateForSmartPauseIfNeeded(pausedTitle)
         case .cooldown(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
-            return String(format: String(localized: "Cooldown %@"), remaining)
+            let cooldownTitle = String(format: String(localized: "Cooldown %@"), remaining)
+            return decorateForSmartPauseIfNeeded(cooldownTitle)
         case .snoozing(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             return String(format: String(localized: "Snoozing for %@"), remaining)
@@ -356,6 +358,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let remaining = AppStateController.formattedCountdown(seconds)
             return String(format: String(localized: "Next pause in %@"), remaining)
         }
+    }
+
+    private func decorateForSmartPauseIfNeeded(_ title: String) -> String {
+        guard let smartPauseCode = appState.smartPauseCode() else { return title }
+        return String(
+            format: String(localized: "smart_pause.menu.prefix_format", defaultValue: "(%@) %@"),
+            smartPauseCode,
+            title
+        )
     }
 
     private func menuBarCountdownTitle(from menuTitle: String) -> String {

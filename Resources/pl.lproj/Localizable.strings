@@ -317,3 +317,8 @@
 "settings.pause_schedule.period.mode.inactive" = "Inactive window";
 "settings.pause_schedule.time.start" = "Start";
 "settings.pause_schedule.time.end" = "End";
+"smart_pause.menu.prefix_format" = "(%@) %@";
+"smart_pause.code.base" = "P";
+"smart_pause.code.media" = "M";
+"smart_pause.code.apps" = "X";
+"smart_pause.code.schedule" = "S";
