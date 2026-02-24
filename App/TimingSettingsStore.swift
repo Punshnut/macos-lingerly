@@ -18,6 +18,8 @@ enum TimingSettingsKeys {
     static let mediaResetOnResume = "lingerly.media.reset.on.resume"
     static let smartPauseResumeBehavior = "lingerly.smart.pause.resume.behavior"
     static let smartPauseCooldownMinutes = "lingerly.smart.pause.cooldown.minutes"
+    static let smartPauseScheduleEnabled = "lingerly.smart.pause.schedule.enabled"
+    static let smartPauseSchedulePeriods = "lingerly.smart.pause.schedule.periods"
     static let pauseForAppsEnabled = "lingerly.smart.pause.apps.enabled"
     static let pauseForAppsRules = "lingerly.smart.pause.apps.rules"
     static let resetOnUnlock = "lingerly.timer.reset.on.unlock"
@@ -97,6 +99,24 @@ final class TimingSettingsStore {
     var smartPauseCooldownMinutes: Int {
         get { value(forKey: TimingSettingsKeys.smartPauseCooldownMinutes, defaultValue: 1) }
         set { defaults.set(max(1, min(newValue, 5)), forKey: TimingSettingsKeys.smartPauseCooldownMinutes) }
+    }
+
+    /// Whether schedule-based smart pause is enabled.
+    var smartPauseScheduleEnabled: Bool {
+        get { bool(forKey: TimingSettingsKeys.smartPauseScheduleEnabled, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.smartPauseScheduleEnabled) }
+    }
+
+    /// Daily schedule periods that control smart pause.
+    var smartPauseSchedulePeriods: [SmartPauseSchedulePeriod] {
+        get {
+            guard let data = defaults.data(forKey: TimingSettingsKeys.smartPauseSchedulePeriods) else { return [] }
+            return (try? JSONDecoder().decode([SmartPauseSchedulePeriod].self, from: data)) ?? []
+        }
+        set {
+            let encoded = try? JSONEncoder().encode(newValue)
+            defaults.set(encoded, forKey: TimingSettingsKeys.smartPauseSchedulePeriods)
+        }
     }
 
     /// Whether app-based smart pause is enabled.

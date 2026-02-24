@@ -300,3 +300,20 @@
 
 "Cooldown" = "Cooldown";
 "Cooldown %@" = "Cooldown %@";
+"settings.pause_schedule.card.title" = "Schedule";
+"settings.pause_schedule.card.subtitle" = "Set when Lingerly should stay active or pause automatically.";
+"settings.pause_schedule.toggle.title" = "Use schedule";
+"settings.pause_schedule.toggle.subtitle" = "Automatically pause or allow reminders at specific times.";
+"settings.pause_schedule.quick.title" = "Quick setup";
+"settings.pause_schedule.mode.simple" = "Simple";
+"settings.pause_schedule.mode.advanced" = "Advanced";
+"settings.pause_schedule.empty" = "No schedule periods yet.";
+"settings.pause_schedule.add_first" = "Add first period";
+"settings.pause_schedule.periods.title" = "Periods";
+"settings.pause_schedule.periods.add" = "Add Period";
+"settings.pause_schedule.periods.empty" = "Add a period to start automating Smart Pause.";
+"settings.pause_schedule.period.label" = "Period %d";
+"settings.pause_schedule.period.mode.active" = "Active window";
+"settings.pause_schedule.period.mode.inactive" = "Inactive window";
+"settings.pause_schedule.time.start" = "Start";
+"settings.pause_schedule.time.end" = "End";

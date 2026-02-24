@@ -47,6 +47,7 @@ final class AppStateController {
     private var lastUserInactiveDate: Date?
     private var isMediaConditionActive = false
     private var isAppConditionActive = false
+    private var isScheduleConditionActive = false
 
     private var pulsePhase: CGFloat = 0
     private var pulseTimer: Timer?
@@ -58,9 +59,11 @@ final class AppStateController {
     private var reduceMotionObserver: NSObjectProtocol?
     private var reduceMotionEnabled = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     private var overlayVisibilityValidationTask: Task<Void, Never>?
+    private var smartPauseScheduleTimer: Timer?
     private var lastMediaPauseEnabled: Bool
     private var lastPauseForAppsEnabled: Bool
     private var lastPauseForAppsRules: [PauseAppRule]
+    private var lastSchedulePauseEnabled: Bool
 
     /// Wires engine callbacks, notification actions, and system observers.
     init() {
@@ -68,6 +71,7 @@ final class AppStateController {
         lastMediaPauseEnabled = settingsStore.mediaPauseEnabled
         lastPauseForAppsEnabled = settingsStore.pauseForAppsEnabled
         lastPauseForAppsRules = settingsStore.pauseForAppsRules
+        lastSchedulePauseEnabled = settingsStore.smartPauseScheduleEnabled
 
         engine.onStateChange = { [weak self] engineState in
             self?.state = self?.mapState(engineState) ?? .idle
@@ -172,6 +176,7 @@ final class AppStateController {
     }
 
     @MainActor deinit {
+        smartPauseScheduleTimer?.invalidate()
         if let observer = defaultsObserver {
             NotificationCenter.default.removeObserver(observer)
         }
@@ -197,6 +202,7 @@ final class AppStateController {
         guard isRunning else { return }
         clearSnooze()
         cancelSmartPauseCooldown()
+        stopSmartPauseScheduleTimer()
         isManuallyPaused = true
         engine.pause()
         overlayController.hide()
@@ -226,6 +232,7 @@ final class AppStateController {
         guard isRunning else { return }
         clearSnooze()
         cancelSmartPauseCooldown()
+        stopSmartPauseScheduleTimer()
         isManuallyPaused = true
         engine.pause()
         onStateChange?(state)
@@ -236,6 +243,7 @@ final class AppStateController {
         guard isRunning else { return }
         isManuallyPaused = false
         cancelSmartPauseCooldown()
+        refreshSmartPauseScheduleSource()
         applySmartPauseState()
         if !isSmartPaused {
             engine.resume(resetCounters: false)
@@ -462,6 +470,7 @@ final class AppStateController {
             pauseForAppsEnabled: settingsStore.pauseForAppsEnabled,
             pauseForAppsRules: settingsStore.pauseForAppsRules
         )
+        refreshSmartPauseScheduleSource()
         applySmartPauseState()
     }
 
@@ -470,10 +479,13 @@ final class AppStateController {
     private func refreshSmartPauseAfterSettingsChange() {
         let previousMediaConditionActive = isMediaConditionActive
         let previousAppConditionActive = isAppConditionActive
+        let previousScheduleConditionActive = isScheduleConditionActive
 
         let newMediaPauseEnabled = settingsStore.mediaPauseEnabled
         let newPauseForAppsEnabled = settingsStore.pauseForAppsEnabled
         let newPauseForAppsRules = settingsStore.pauseForAppsRules
+        let newSchedulePauseEnabled = settingsStore.smartPauseScheduleEnabled
+        let newSchedulePausePeriods = settingsStore.smartPauseSchedulePeriods
         let runningBundleIDs = runningAppsMonitor.runningBundleIdentifiers
         let previousTrackedAppIDs = Set(lastPauseForAppsRules.map { $0.bundleIdentifier.lowercased() })
         let newTrackedAppIDs = Set(newPauseForAppsRules.map { $0.bundleIdentifier.lowercased() })
@@ -488,7 +500,11 @@ final class AppStateController {
                 pauseForAppsRules: newPauseForAppsRules
             ))
         )
-        let shouldBypassCooldown = mediaSourceDisabledWhileActive || appSourceDisabledWhileActive
+        let scheduleSourceDisabledWhileActive = previousScheduleConditionActive && (
+            (lastSchedulePauseEnabled && !newSchedulePauseEnabled) ||
+            (newSchedulePauseEnabled && smartPauseTriggeredBySchedule(at: Date(), periods: newSchedulePausePeriods) == false)
+        )
+        let shouldBypassCooldown = mediaSourceDisabledWhileActive || appSourceDisabledWhileActive || scheduleSourceDisabledWhileActive
 
         isMediaConditionActive = newMediaPauseEnabled && mediaPlaybackMonitor.isPlaying
         isAppConditionActive = appConditionIsActive(
@@ -496,16 +512,19 @@ final class AppStateController {
             pauseForAppsEnabled: newPauseForAppsEnabled,
             pauseForAppsRules: newPauseForAppsRules
         )
+        isScheduleConditionActive = newSchedulePauseEnabled && smartPauseTriggeredBySchedule(at: Date(), periods: newSchedulePausePeriods)
 
         lastMediaPauseEnabled = newMediaPauseEnabled
         lastPauseForAppsEnabled = newPauseForAppsEnabled
         lastPauseForAppsRules = newPauseForAppsRules
+        lastSchedulePauseEnabled = newSchedulePauseEnabled
+        restartSmartPauseScheduleTimerIfNeeded()
 
         applySmartPauseState(bypassCooldownIfConditionsCleared: shouldBypassCooldown)
     }
 
     private func applySmartPauseState(bypassCooldownIfConditionsCleared: Bool = false) {
-        let shouldPause = isMediaConditionActive || isAppConditionActive
+        let shouldPause = isMediaConditionActive || isAppConditionActive || isScheduleConditionActive
         if shouldPause {
             cancelSmartPauseCooldown()
             guard isRunning, state == .running, !isManuallyPaused, !isSmartPaused else { return }
@@ -545,6 +564,59 @@ final class AppStateController {
         guard pauseForAppsEnabled else { return false }
         let trackedIDs = Set(pauseForAppsRules.map { $0.bundleIdentifier.lowercased() })
         return !trackedIDs.isEmpty && !trackedIDs.isDisjoint(with: runningBundleIDs)
+    }
+
+    private func refreshSmartPauseScheduleSource(at date: Date = Date()) {
+        let isEnabled = settingsStore.smartPauseScheduleEnabled
+        let periods = settingsStore.smartPauseSchedulePeriods
+        isScheduleConditionActive = isEnabled && smartPauseTriggeredBySchedule(at: date, periods: periods)
+        lastSchedulePauseEnabled = isEnabled
+        restartSmartPauseScheduleTimerIfNeeded()
+    }
+
+    private func smartPauseTriggeredBySchedule(at date: Date, periods: [SmartPauseSchedulePeriod]) -> Bool {
+        guard !periods.isEmpty else { return false }
+
+        var hasActivePeriod = false
+        var matchedActive = false
+        var matchedInactive = false
+
+        for period in periods {
+            if period.mode == .active {
+                hasActivePeriod = true
+            }
+            guard period.contains(date) else { continue }
+            if period.mode == .inactive {
+                matchedInactive = true
+            } else {
+                matchedActive = true
+            }
+        }
+
+        if matchedInactive {
+            return true
+        }
+        if hasActivePeriod {
+            return !matchedActive
+        }
+        return false
+    }
+
+    private func restartSmartPauseScheduleTimerIfNeeded() {
+        stopSmartPauseScheduleTimer()
+        guard isRunning, settingsStore.smartPauseScheduleEnabled, !settingsStore.smartPauseSchedulePeriods.isEmpty else { return }
+        smartPauseScheduleTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.refreshSmartPauseScheduleSource()
+                self.applySmartPauseState()
+            }
+        }
+    }
+
+    private func stopSmartPauseScheduleTimer() {
+        smartPauseScheduleTimer?.invalidate()
+        smartPauseScheduleTimer = nil
     }
 
     private func resumeAfterSnooze() {

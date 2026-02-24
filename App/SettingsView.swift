@@ -675,10 +675,12 @@ private struct SmartPauseSettingsView: View {
     @AppStorage(OnboardingKeys.alwaysNotificationOnly) private var alwaysNotificationOnly = false
     @AppStorage(TimingSettingsKeys.mediaPauseEnabled) private var mediaPauseEnabled = false
     @AppStorage(TimingSettingsKeys.pauseForAppsEnabled) private var pauseForAppsEnabled = false
+    @AppStorage(TimingSettingsKeys.smartPauseScheduleEnabled) private var smartPauseScheduleEnabled = false
     @AppStorage(TimingSettingsKeys.smartPauseResumeBehavior) private var smartPauseResumeBehaviorRaw = SmartPauseResumeBehavior.resumeTimer.rawValue
     @AppStorage(TimingSettingsKeys.smartPauseCooldownMinutes) private var smartPauseCooldownMinutes = 1
     @AppStorage(TimingSettingsKeys.resetOnUnlock) private var resetOnUnlock = false
     @State private var pauseAppRules: [PauseAppRule] = []
+    @State private var schedulePeriods: [SmartPauseSchedulePeriod] = []
     private let settingsStore = TimingSettingsStore()
 
     var body: some View {
@@ -746,6 +748,22 @@ private struct SmartPauseSettingsView: View {
                 )
             }
 
+            SettingsCard(l("settings.pause_schedule.card.title"), subtitle: l("settings.pause_schedule.card.subtitle")) {
+                SettingsToggleRow(
+                    icon: "calendar.badge.clock",
+                    title: l("settings.pause_schedule.toggle.title"),
+                    subtitle: l("settings.pause_schedule.toggle.subtitle"),
+                    isOn: $smartPauseScheduleEnabled
+                )
+
+                SettingsDivider()
+
+                SmartPauseScheduleEditor(
+                    periods: $schedulePeriods,
+                    isEnabled: smartPauseScheduleEnabled
+                )
+            }
+
             SettingsCard(l("settings.pause_behavior.card.title"), subtitle: l("settings.pause_behavior.card.subtitle")) {
                 SettingsRow(
                     icon: "arrow.clockwise.circle",
@@ -782,15 +800,19 @@ private struct SmartPauseSettingsView: View {
         }
         .onAppear {
             pauseAppRules = settingsStore.pauseForAppsRules
+            schedulePeriods = settingsStore.smartPauseSchedulePeriods
             smartPauseResumeBehaviorRaw = settingsStore.smartPauseResumeBehavior.rawValue
         }
         .onChange(of: pauseAppRules) { newRules in
             settingsStore.pauseForAppsRules = newRules
         }
+        .onChange(of: schedulePeriods) { newPeriods in
+            settingsStore.smartPauseSchedulePeriods = newPeriods
+        }
     }
 
     private var hasAnySmartPauseSource: Bool {
-        mediaPauseEnabled || (pauseForAppsEnabled && !pauseAppRules.isEmpty)
+        mediaPauseEnabled || (pauseForAppsEnabled && !pauseAppRules.isEmpty) || (smartPauseScheduleEnabled && !schedulePeriods.isEmpty)
     }
 
     private var smartPauseCooldownMinutesBinding: Binding<Double> {
@@ -930,6 +952,340 @@ private struct PauseAppRuleRow: View {
             return NSWorkspace.shared.icon(forFile: bundlePath)
         }
         return NSImage(systemSymbolName: "app.fill", accessibilityDescription: nil) ?? NSImage()
+    }
+}
+
+private struct SmartPauseScheduleEditor: View {
+    @Binding var periods: [SmartPauseSchedulePeriod]
+    let isEnabled: Bool
+    @State private var showingAdvanced = false
+
+    private let weekdayOrder = [2, 3, 4, 5, 6, 7, 1]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if showingAdvanced {
+                advancedEditor
+            } else {
+                quickEditorSection
+            }
+        }
+        .padding(.leading, 48)
+        .opacity(isEnabled ? 1 : 0.6)
+    }
+
+    private var quickEditorSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text(l("settings.pause_schedule.quick.title"))
+                    .font(.callout.weight(.semibold))
+                Spacer()
+                Button(l("settings.pause_schedule.mode.advanced")) {
+                    showingAdvanced = true
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!isEnabled)
+            }
+
+            if let first = periods.first {
+                quickEditor(for: first)
+            } else {
+                Text(l("settings.pause_schedule.empty"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 4)
+
+                Button(l("settings.pause_schedule.add_first")) {
+                    periods = [defaultPeriod()]
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(!isEnabled)
+            }
+        }
+    }
+
+    private func quickEditor(for period: SmartPauseSchedulePeriod) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("", selection: Binding(
+                get: { period.mode },
+                set: { value in
+                    mutateFirst { $0.mode = value }
+                }
+            )) {
+                Text(l("settings.pause_schedule.period.mode.active")).tag(SmartPauseScheduleMode.active)
+                Text(l("settings.pause_schedule.period.mode.inactive")).tag(SmartPauseScheduleMode.inactive)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: 260)
+
+            HStack(spacing: 12) {
+                DatePicker(
+                    l("settings.pause_schedule.time.start"),
+                    selection: Binding(
+                        get: { date(fromMinute: period.startMinute) },
+                        set: { value in
+                            mutateFirst { $0.startMinute = minute(from: value) }
+                        }
+                    ),
+                    displayedComponents: .hourAndMinute
+                )
+                .labelsHidden()
+
+                DatePicker(
+                    l("settings.pause_schedule.time.end"),
+                    selection: Binding(
+                        get: { date(fromMinute: period.endMinute) },
+                        set: { value in
+                            mutateFirst { $0.endMinute = minute(from: value) }
+                        }
+                    ),
+                    displayedComponents: .hourAndMinute
+                )
+                .labelsHidden()
+            }
+
+            WeekdayPicker(
+                selectedWeekdays: period.weekdays,
+                order: weekdayOrder,
+                onToggle: { weekday in
+                    mutateFirst { draft in
+                        if draft.weekdays.contains(weekday) {
+                            draft.weekdays.remove(weekday)
+                        } else {
+                            draft.weekdays.insert(weekday)
+                        }
+                        if draft.weekdays.isEmpty {
+                            draft.weekdays = Set(weekdayOrder)
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    private var advancedEditor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text(l("settings.pause_schedule.periods.title"))
+                    .font(.callout.weight(.semibold))
+                Spacer()
+                Button(l("settings.pause_schedule.mode.simple")) {
+                    showingAdvanced = false
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!isEnabled)
+                Button(l("settings.pause_schedule.periods.add")) {
+                    periods.append(defaultPeriod())
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!isEnabled)
+            }
+
+            if periods.isEmpty {
+                Text(l("settings.pause_schedule.periods.empty"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(periods.enumerated()), id: \.element.id) { index, period in
+                        SmartPauseSchedulePeriodRow(
+                            index: index,
+                            period: period,
+                            weekdayOrder: weekdayOrder,
+                            isEnabled: isEnabled,
+                            onChange: { updated in
+                                guard periods.indices.contains(index) else { return }
+                                periods[index] = updated
+                            },
+                            onDelete: {
+                                guard periods.indices.contains(index) else { return }
+                                periods.remove(at: index)
+                            }
+                        )
+                        if index < periods.count - 1 {
+                            Divider()
+                        }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.primary.opacity(0.05))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+            }
+        }
+    }
+
+    private func mutateFirst(_ mutate: (inout SmartPauseSchedulePeriod) -> Void) {
+        guard !periods.isEmpty else { return }
+        var first = periods[0]
+        mutate(&first)
+        periods[0] = first
+    }
+
+    private func defaultPeriod() -> SmartPauseSchedulePeriod {
+        SmartPauseSchedulePeriod(
+            mode: .active,
+            startMinute: 9 * 60,
+            endMinute: 17 * 60,
+            weekdays: Set(weekdayOrder.prefix(5))
+        )
+    }
+
+    private func date(fromMinute minute: Int) -> Date {
+        let calendar = Calendar.current
+        let now = Date()
+        let day = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .minute, value: SmartPauseSchedulePeriod.clampMinute(minute), to: day) ?? now
+    }
+
+    private func minute(from date: Date) -> Int {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let hour = components.hour ?? 0
+        let minute = components.minute ?? 0
+        return SmartPauseSchedulePeriod.clampMinute(hour * 60 + minute)
+    }
+}
+
+private struct SmartPauseSchedulePeriodRow: View {
+    let index: Int
+    let period: SmartPauseSchedulePeriod
+    let weekdayOrder: [Int]
+    let isEnabled: Bool
+    let onChange: (SmartPauseSchedulePeriod) -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Text(String(format: l("settings.pause_schedule.period.label"), index + 1))
+                    .font(.callout.weight(.semibold))
+                Spacer()
+                Button(role: .destructive, action: onDelete) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.plain)
+                .disabled(!isEnabled)
+            }
+
+            Picker("", selection: Binding(
+                get: { period.mode },
+                set: { mode in
+                    var updated = period
+                    updated.mode = mode
+                    onChange(updated)
+                }
+            )) {
+                Text(l("settings.pause_schedule.period.mode.active")).tag(SmartPauseScheduleMode.active)
+                Text(l("settings.pause_schedule.period.mode.inactive")).tag(SmartPauseScheduleMode.inactive)
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(width: 160, alignment: .leading)
+
+            HStack(spacing: 12) {
+                DatePicker(
+                    l("settings.pause_schedule.time.start"),
+                    selection: Binding(
+                        get: { date(fromMinute: period.startMinute) },
+                        set: { value in
+                            var updated = period
+                            updated.startMinute = minute(from: value)
+                            onChange(updated)
+                        }
+                    ),
+                    displayedComponents: .hourAndMinute
+                )
+                .labelsHidden()
+
+                DatePicker(
+                    l("settings.pause_schedule.time.end"),
+                    selection: Binding(
+                        get: { date(fromMinute: period.endMinute) },
+                        set: { value in
+                            var updated = period
+                            updated.endMinute = minute(from: value)
+                            onChange(updated)
+                        }
+                    ),
+                    displayedComponents: .hourAndMinute
+                )
+                .labelsHidden()
+            }
+
+            WeekdayPicker(
+                selectedWeekdays: period.weekdays,
+                order: weekdayOrder,
+                onToggle: { weekday in
+                    var updated = period
+                    if updated.weekdays.contains(weekday) {
+                        updated.weekdays.remove(weekday)
+                    } else {
+                        updated.weekdays.insert(weekday)
+                    }
+                    if updated.weekdays.isEmpty {
+                        updated.weekdays = Set(weekdayOrder)
+                    }
+                    onChange(updated)
+                }
+            )
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .opacity(isEnabled ? 1 : 0.6)
+    }
+
+    private func date(fromMinute minute: Int) -> Date {
+        let calendar = Calendar.current
+        let now = Date()
+        let day = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .minute, value: SmartPauseSchedulePeriod.clampMinute(minute), to: day) ?? now
+    }
+
+    private func minute(from date: Date) -> Int {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let hour = components.hour ?? 0
+        let minute = components.minute ?? 0
+        return SmartPauseSchedulePeriod.clampMinute(hour * 60 + minute)
+    }
+}
+
+private struct WeekdayPicker: View {
+    let selectedWeekdays: Set<Int>
+    let order: [Int]
+    let onToggle: (Int) -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(order, id: \.self) { weekday in
+                Button(shortWeekday(weekday)) {
+                    onToggle(weekday)
+                }
+                .buttonStyle(.plain)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(selectedWeekdays.contains(weekday) ? Color.accentColor.opacity(0.22) : Color.primary.opacity(0.08))
+                )
+            }
+        }
+    }
+
+    private func shortWeekday(_ weekday: Int) -> String {
+        let symbols = Calendar.current.shortWeekdaySymbols
+        let index = max(0, min(weekday - 1, symbols.count - 1))
+        let symbol = symbols[index]
+        return String(symbol.prefix(2))
     }
 }
 
