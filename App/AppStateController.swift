@@ -13,6 +13,7 @@ final class AppStateController {
     enum NextBreakDisplay: Equatable {
         case inactive
         case paused
+        case cooldown(seconds: Int)
         case snoozing(seconds: Int)
         case breakDue
         case breakActive(seconds: Int)
@@ -41,6 +42,7 @@ final class AppStateController {
     private var isSmartPaused = false
     private var smartPauseStartedAt: Date?
     private var smartPauseCooldownTimer: Timer?
+    private var smartPauseCooldownEndDate: Date?
     private var isManuallyPaused = false
     private var lastUserInactiveDate: Date?
     private var isMediaConditionActive = false
@@ -316,7 +318,15 @@ final class AppStateController {
             return .breakDue
         }
 
-        if isManuallyPaused || isSmartPaused {
+        if isManuallyPaused {
+            return .paused
+        }
+
+        if isSmartPaused, let cooldownRemaining = smartPauseCooldownRemainingSeconds(at: date), cooldownRemaining > 0 {
+            return .cooldown(seconds: cooldownRemaining)
+        }
+
+        if isSmartPaused {
             return .paused
         }
 
@@ -519,6 +529,7 @@ final class AppStateController {
         }
         guard smartPauseCooldownTimer == nil else { return }
         let cooldownSeconds = TimeInterval(max(settingsStore.smartPauseCooldownMinutes, 1) * 60)
+        smartPauseCooldownEndDate = Date().addingTimeInterval(cooldownSeconds)
         smartPauseCooldownTimer = Timer.scheduledTimer(withTimeInterval: cooldownSeconds, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 self?.resumeFromSmartPauseAfterCooldown()
@@ -575,6 +586,7 @@ final class AppStateController {
     private func cancelSmartPauseCooldown() {
         smartPauseCooldownTimer?.invalidate()
         smartPauseCooldownTimer = nil
+        smartPauseCooldownEndDate = nil
     }
 
     private func resumeFromSmartPauseAfterCooldown() {
@@ -590,6 +602,11 @@ final class AppStateController {
         engine.resume(resetCounters: behavior == .resetTimer)
         isSmartPaused = false
         smartPauseStartedAt = nil
+    }
+
+    private func smartPauseCooldownRemainingSeconds(at date: Date = Date()) -> Int? {
+        guard let endDate = smartPauseCooldownEndDate else { return nil }
+        return max(Int(ceil(endDate.timeIntervalSince(date))), 0)
     }
 
     /// Starts a subtle pulse for the menu bar icon during active breaks.

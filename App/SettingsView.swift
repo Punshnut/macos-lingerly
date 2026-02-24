@@ -334,6 +334,8 @@ private struct GeneralSettingsView: View {
             return (String(localized: "Break due now"), true)
         case .paused:
             return (String(localized: "Timer paused"), true)
+        case .cooldown:
+            return (String(localized: "Cooldown"), true)
         case .snoozing(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             return (String(format: String(localized: "Snoozing for %@"), remaining), false)

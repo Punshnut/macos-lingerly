@@ -36,6 +36,9 @@ enum StatusIconRenderer {
         case .paused:
             drawPause(at: center, barHeight: 8.0, barWidth: 2.2)
 
+        case .cooldown:
+            drawPause(at: center, barHeight: 8.0, barWidth: 2.2)
+
         case .snoozing:
             drawRing(at: center, radius: 5.0, lineWidth: 1.3)
 

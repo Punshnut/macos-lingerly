@@ -9,6 +9,8 @@
 "Break due now" = "A break is due now";
 "Timer paused" = "Timer is paused";
 "Timer stopped" = "Reminders are off";
+"Cooldown" = "Cooldown";
+"Cooldown %@" = "Cooldown %@";
 "Reset Timer" = "Restart Timer";
 "Settings..." = "Settings...";
 "Check for Updates..." = "Check for Updates...";

@@ -297,3 +297,6 @@
 
 "settings.general.autostart.title" = "Start at login";
 "settings.general.autostart.subtitle" = "Launch Lingerly automatically when you sign in to your Mac.";
+
+"Cooldown" = "Cooldown";
+"Cooldown %@" = "Cooldown %@";

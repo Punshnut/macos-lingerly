@@ -341,6 +341,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let remaining = appState.pausedCountdownSeconds(at: date) ?? 0
             let countdown = AppStateController.formattedCountdown(remaining)
             return String(format: String(localized: "Timer paused at %@"), countdown)
+        case .cooldown(let seconds):
+            let remaining = AppStateController.formattedCountdown(seconds)
+            return String(format: String(localized: "Cooldown %@"), remaining)
         case .snoozing(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             return String(format: String(localized: "Snoozing for %@"), remaining)
@@ -365,7 +368,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return AppStateController.formattedCountdown(seconds)
         case .breakActive(let seconds):
             return AppStateController.formattedCountdown(seconds)
-        case .breakDue, .paused, .inactive:
+        case .breakDue, .paused, .cooldown, .inactive:
             return ""
         }
     }
