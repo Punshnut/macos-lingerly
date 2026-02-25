@@ -1,8 +1,5 @@
 // Menu
-"Start" = "Start Lingerly";
-"Stop" = "Pause Lingerly";
 "Snooze 1 min" = "Snooze %d min";
-"Take a Breath, Look Outside" = "Take a breath and look away";
 "Next pause in %@" = "Next break in %@";
 "Snoozing for %@" = "Snoozing for %@";
 "On break %@" = "On break: %@";
@@ -14,8 +11,44 @@
 "Reset Timer" = "Restart Timer";
 "Settings..." = "Settings...";
 "Check for Updates..." = "Check for Updates...";
-"Export Diagnostics" = "Export diagnostics";
 "Quit Lingerly" = "Quit Lingerly";
+"menu.about.title" = "About Lingerly";
+"menu.status.muted_format" = "Muted %@";
+
+// Menu Panel
+"menu.panel.controls.start" = "Start";
+"menu.panel.controls.pause" = "Pause";
+"menu.panel.tab.lingerly" = "Lingerly";
+"menu.panel.tab.settings" = "Settings";
+"menu.panel.preset.custom" = "Custom";
+"menu.panel.timer.focus_interval" = "Focus interval";
+"menu.panel.timer.break_length" = "Break length";
+"menu.panel.timer.snooze" = "Snooze";
+"menu.panel.action.break_now" = "Break now";
+"menu.panel.action.skip_break" = "Skip break";
+"menu.panel.action.restart" = "Restart";
+"menu.panel.settings.active_time" = "Active-time";
+"menu.panel.settings.launch_at_login" = "Launch at login";
+"menu.panel.settings.schedule" = "Schedule";
+"menu.panel.settings.menu_bar_timer" = "Menu bar timer";
+"menu.panel.settings.pause_on_media" = "Pause on media";
+"menu.panel.settings.reset_on_unlock" = "Reset on unlock";
+"menu.panel.settings.start_resume_behavior" = "Start/Resume button behavior";
+"menu.panel.settings.resume_behavior.resume" = "Resume";
+"menu.panel.settings.resume_behavior.reset" = "Reset";
+"menu.panel.settings.smart_pause_cooldown" = "Smart pause cooldown";
+"menu.panel.settings.snooze_length" = "Snooze length";
+"menu.panel.status.subtitle.idle" = "Reminders are currently off";
+"menu.panel.status.subtitle.running" = "Lingerly rhythm is active";
+"menu.panel.status.subtitle.paused" = "Timer is paused";
+"menu.panel.status.subtitle.muted" = "Muted while timer keeps counting";
+"menu.panel.status.subtitle.cooldown" = "Auto-pause cooldown in progress";
+"menu.panel.status.subtitle.snoozing" = "Snooze is active";
+"menu.panel.status.subtitle.break_due" = "Break prompt is waiting";
+"menu.panel.status.subtitle.on_break" = "Break session in progress";
+"menu.panel.value.minutes_format" = "%d min";
+"menu.panel.value.seconds_short_format" = "%ds";
+"menu.panel.value.minutes_seconds_short_format" = "%dm %ds";
 
 // Onboarding
 "Onboarding Window Title" = "Welcome";
@@ -40,8 +73,6 @@
 
 // Overlay
 "Overlay Title" = "Linger a little";
-"Overlay Subtitle" = "Take a short pause for your eyes.";
-"Overlay Subtitle Water" = "Take a short pause for your eyes, and have some water.";
 "Overlay Time Left" = "Time left";
 "Overlay Hold To Skip" = "Hold Space to Skip This Break";
 "Overlay Hold To Skip Hint" = "Hold Space or click and hold if you need to skip this break.";
@@ -50,31 +81,14 @@
 
 // Notifications
 "Notification Break Due Title" = "Time to look away";
-"Notification Break Due Body" = "You're in fullscreen. Would you like to snooze this break or skip it?";
 "Notification Skip Confirm Title" = "Skip this break?";
 "Notification Skip Confirm Body" = "Skipping resets your break timer.";
-"Notification Snooze" = "Snooze";
 "Notification Skip" = "Skip";
 "Notification Skip Confirm" = "Skip This Break";
 "Notification Skip Cancel" = "Cancel";
 
 // Settings
-"Preset" = "Preset";
-"Preset 20-20-20" = "20-20-20";
-"Preset 45-15" = "45/15";
-"Preset Custom" = "Custom";
 "Snooze" = "Snooze";
-"Snooze Duration" = "Snooze";
-"Wellness" = "Wellness";
-"Water Reminder" = "Water reminder";
-"Water Reminder Detail" = "Adds a gentle nudge to drink water during breaks.";
-
-// Media
-"Media" = "Media playback";
-"Pause timer during media" = "Pause timer during media playback";
-"Pause timer during media Detail" = "Pauses the timer while audio or video is playing.";
-"Reset timer after media" = "Restart timer after media ends";
-"Reset timer after media Detail" = "Starts a fresh timer when playback stops.";
 
 // Settings View
 "settings.sidebar.section.basics" = "Essentials";
@@ -93,25 +107,16 @@
 "settings.sidebar.item.about" = "About";
 "settings.placeholder.break_timing.title" = "Cadence";
 "settings.placeholder.break_timing.subtitle" = "Set your focus and break rhythm.";
-"settings.placeholder.break_timing.detail" = "Adjust your cadence to match the day.";
 "settings.placeholder.auto_pause.title" = "Smart Pause";
 "settings.placeholder.auto_pause.subtitle" = "Choose how breaks are delivered and how Smart Pause handles fullscreen, media, and selected apps.";
-"settings.placeholder.auto_pause.detail" = "Choose when the timer pauses and how it resumes.";
 "settings.placeholder.wellness.title" = "Wellness";
 "settings.placeholder.wellness.subtitle" = "Optional reminders to support your wellbeing.";
-"settings.placeholder.wellness.detail" = "Choose supportive nudges that fit your day.";
 "settings.placeholder.appearance.title" = "Style";
 "settings.placeholder.appearance.subtitle" = "Shape Lingerly's look and tone.";
 "settings.placeholder.appearance.detail" = "More appearance options are coming soon.";
 "settings.placeholder.sounds.title" = "Chimes";
 "settings.placeholder.sounds.subtitle" = "Pick the sounds for reminders.";
 "settings.placeholder.sounds.detail" = "More sound options are coming soon.";
-"settings.placeholder.shortcuts.title" = "Hotkeys";
-"settings.placeholder.shortcuts.subtitle" = "Trigger actions without a mouse.";
-"settings.placeholder.shortcuts.detail" = "Shortcut customization is coming soon.";
-"settings.placeholder.automation.title" = "Rules";
-"settings.placeholder.automation.subtitle" = "Connect Lingerly to your workflows.";
-"settings.placeholder.automation.detail" = "More automation options are coming soon.";
 "settings.placeholder.card.title" = "Coming Soon";
 "settings.placeholder.card.subtitle" = "This section is not interactive yet.";
 "settings.placeholder.badge" = "Coming soon";
@@ -119,13 +124,10 @@
 "settings.general.subtitle" = "Your current focus rhythm at a glance.";
 "settings.overview.card.title" = "At a Glance";
 "settings.overview.card.subtitle" = "Your current cycle and preset.";
-"settings.overview.preset.title" = "Active Preset";
-"settings.overview.preset.subtitle" = "Your current starting schedule.";
 "settings.general.card.break_timing.title" = "Break Timing";
 "settings.general.card.break_timing.subtitle" = "Your default focus and break cycle.";
 "settings.general.timing_preset.title" = "Timing Preset";
 "settings.general.timing_preset.subtitle" = "Pick a built-in schedule or choose Custom.";
-"settings.general.timing_preset.label" = "Timing Preset";
 "settings.general.timing_preset.option_20_20_20" = "20-20-20";
 "settings.general.timing_preset.option_45_15" = "45-15";
 "settings.general.timing_preset.option_custom" = "Custom";
@@ -169,7 +171,6 @@
 "settings.pause_behavior.subtitle" = "Pick whether to resume, restart, or keep counting down during pauses.";
 "settings.pause_behavior.option_resume" = "Resume where I left off";
 "settings.pause_behavior.option_reset" = "Start a new timer";
-"settings.pause_behavior.option_countdown" = "Keep counting down during pause";
 "settings.pause_behavior.cooldown.title" = "Resume cooldown";
 "settings.pause_behavior.cooldown.subtitle" = "Wait this long after auto-pause conditions end before resuming.";
 "settings.pause_behavior.cooldown.value" = "%d min";
@@ -177,7 +178,6 @@
 "settings.fullscreen.card.subtitle" = "Pick the fallback behavior when another app is full screen.";
 "settings.fullscreen.interruption.title" = "During another app's full-screen mode";
 "settings.fullscreen.interruption.subtitle" = "Choose whether to show a macOS notification fallback or start the break overlay immediately.";
-"settings.fullscreen.interruption.label" = "Fullscreen behavior";
 "settings.fullscreen.interruption.option_notify" = "Notification";
 "settings.fullscreen.interruption.option_interrupt" = "Overlay";
 "settings.enforcement.card.title" = "Break delivery";
@@ -200,11 +200,6 @@
 "settings.about.github_button" = "GitHub Project";
 
 // Media
-"Media" = "Media playback";
-"Pause timer during media" = "Pause timer during media playback";
-"Pause timer during media Detail" = "Pauses the timer while audio or video is playing.";
-"Reset timer after media" = "Restart timer after media ends";
-"Reset timer after media Detail" = "Starts a fresh timer when playback stops.";
 "settings.sidebar.item.widgets" = "Widgets";
 "settings.placeholder.widgets.title" = "Widgets";
 "settings.placeholder.widgets.subtitle" = "Pin Lingerly widgets to your desktop.";
@@ -252,7 +247,6 @@
 "Wellness Reminder Fresh Air" = "open a window for fresh air";
 "Wellness Reminder Stand Up" = "stand up and move for a minute";
 "Wellness Reminder Workout" = "do a short workout or stretch set";
-"Wellness Reminder And" = "and";
 
 // Wellness Settings
 "settings.wellness.fresh_air.title" = "Fresh air reminder";

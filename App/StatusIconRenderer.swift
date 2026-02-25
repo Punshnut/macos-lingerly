@@ -36,6 +36,9 @@ enum StatusIconRenderer {
         case .paused:
             drawPause(at: center, barHeight: 8.0, barWidth: 2.2)
 
+        case .muted:
+            drawMuted(at: center)
+
         case .cooldown:
             drawPause(at: center, barHeight: 8.0, barWidth: 2.2)
 
@@ -51,6 +54,16 @@ enum StatusIconRenderer {
 
         image.isTemplate = true
         return image
+    }
+
+    private static func drawMuted(at center: CGPoint) {
+        drawRing(at: center, radius: 5.0, lineWidth: 1.3)
+        let slash = NSBezierPath()
+        slash.lineWidth = 1.4
+        slash.lineCapStyle = .round
+        slash.move(to: CGPoint(x: center.x - 3.0, y: center.y + 3.0))
+        slash.line(to: CGPoint(x: center.x + 3.0, y: center.y - 3.0))
+        slash.stroke()
     }
 
     private static func drawRing(at center: CGPoint, radius: CGFloat, lineWidth: CGFloat) {

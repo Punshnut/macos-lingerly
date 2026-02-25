@@ -13,6 +13,7 @@ final class AppStateController {
     enum NextBreakDisplay: Equatable {
         case inactive
         case paused
+        case muted(seconds: Int)
         case cooldown(seconds: Int)
         case snoozing(seconds: Int)
         case breakDue
@@ -74,7 +75,15 @@ final class AppStateController {
         lastSchedulePauseEnabled = settingsStore.smartPauseScheduleEnabled
 
         engine.onStateChange = { [weak self] engineState in
-            self?.state = self?.mapState(engineState) ?? .idle
+            guard let self else { return }
+            if self.settingsStore.mutedModeEnabled, engineState == .breakDue || engineState == .breakActive {
+                self.pendingFullscreenBreak = false
+                self.overlayController.hide()
+                self.notificationManager.clearBreakNotifications()
+                self.engine.skipBreak()
+                return
+            }
+            self.state = self.mapState(engineState)
         }
         engine.onBreakCompleted = { [weak self] duration in
             self?.statsStore.recordBreakCompleted(durationSeconds: duration)
@@ -139,6 +148,7 @@ final class AppStateController {
                 guard let self else { return }
                 self.engine.updateConfiguration(self.loadConfiguration())
                 self.refreshSmartPauseAfterSettingsChange()
+                self.refreshMutedModeState()
                 if self.pendingFullscreenBreak && !self.shouldAlwaysNotifyOnly() && !self.shouldDeferForFullscreen() {
                     self.pendingFullscreenBreak = false
                     self.engine.attemptStartBreak()
@@ -227,6 +237,24 @@ final class AppStateController {
         onStateChange?(state)
     }
 
+    /// Delays the next break by the provided number of minutes.
+    func deferNextBreak(byMinutes minutes: Int) {
+        guard isRunning, state == .running else { return }
+        let seconds = max(minutes, 0) * 60
+        guard seconds > 0 else { return }
+        engine.applyUnlockGrace(seconds: seconds)
+        onStateChange?(state)
+    }
+
+    /// Brings the next break closer by the provided number of minutes.
+    func bringNextBreakCloser(byMinutes minutes: Int) {
+        guard isRunning, state == .running else { return }
+        let seconds = TimeInterval(max(minutes, 0) * 60)
+        guard seconds > 0 else { return }
+        engine.advance(by: seconds)
+        onStateChange?(state)
+    }
+
     /// Pauses the timer without resetting counters.
     func pauseTimer() {
         guard isRunning else { return }
@@ -247,6 +275,19 @@ final class AppStateController {
         applySmartPauseState()
         if !isSmartPaused {
             engine.resume(resetCounters: false)
+        }
+        onStateChange?(state)
+    }
+
+    /// Applies muted mode immediately when the toggle changes.
+    func refreshMutedModeState() {
+        guard settingsStore.mutedModeEnabled else { return }
+        let hadPendingFullscreenBreak = pendingFullscreenBreak
+        pendingFullscreenBreak = false
+        overlayController.hide()
+        notificationManager.clearBreakNotifications()
+        if hadPendingFullscreenBreak || state == .breakDue || state == .breakActive {
+            engine.skipBreak()
         }
         onStateChange?(state)
     }
@@ -339,6 +380,9 @@ final class AppStateController {
         }
 
         let remaining = engine.timeUntilNextBreak(at: date) ?? 0
+        if settingsStore.mutedModeEnabled {
+            return .muted(seconds: remaining)
+        }
         return .running(seconds: remaining)
     }
 
@@ -684,11 +728,7 @@ final class AppStateController {
         guard isRunning, state == .running, isSmartPaused, !isManuallyPaused else { return }
         guard !isMediaConditionActive, !isAppConditionActive else { return }
 
-        let pausedDuration = Date().timeIntervalSince(smartPauseStartedAt ?? Date())
         let behavior = settingsStore.smartPauseResumeBehavior
-        if behavior == .countDownDuringPause {
-            engine.advance(by: pausedDuration)
-        }
         engine.resume(resetCounters: behavior == .resetTimer)
         isSmartPaused = false
         smartPauseStartedAt = nil

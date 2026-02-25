@@ -24,6 +24,7 @@ enum TimingSettingsKeys {
     static let pauseForAppsRules = "lingerly.smart.pause.apps.rules"
     static let resetOnUnlock = "lingerly.timer.reset.on.unlock"
     static let menuBarTimerEnabled = "lingerly.menu.timer.enabled"
+    static let mutedModeEnabled = "lingerly.mode.muted.enabled"
     static let overlayStyle = "lingerly.overlay.style"
     static let hotkeyStartStop = "lingerly.hotkey.startStop"
     static let hotkeyResetTimer = "lingerly.hotkey.resetTimer"
@@ -87,6 +88,10 @@ final class TimingSettingsStore {
         get {
             if let raw = defaults.string(forKey: TimingSettingsKeys.smartPauseResumeBehavior),
                let behavior = SmartPauseResumeBehavior(rawValue: raw) {
+                if behavior == .countDownDuringPause {
+                    defaults.set(SmartPauseResumeBehavior.resumeTimer.rawValue, forKey: TimingSettingsKeys.smartPauseResumeBehavior)
+                    return .resumeTimer
+                }
                 return behavior
             }
             // Migration from the old boolean media-reset setting.
@@ -147,6 +152,12 @@ final class TimingSettingsStore {
     var menuBarTimerEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.menuBarTimerEnabled, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.menuBarTimerEnabled) }
+    }
+
+    /// Whether muted mode suppresses break overlays and notifications.
+    var mutedModeEnabled: Bool {
+        get { bool(forKey: TimingSettingsKeys.mutedModeEnabled, defaultValue: false) }
+        set { defaults.set(newValue, forKey: TimingSettingsKeys.mutedModeEnabled) }
     }
 
     /// Times of day to trigger scheduled breaks.

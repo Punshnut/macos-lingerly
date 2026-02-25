@@ -38,6 +38,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     /// Shows a notification indicating a break is due.
     func showBreakDueNotification() {
+        guard !isMutedModeEnabled() else { return }
         ensureAuthorization { authorized in
             guard authorized else { return }
             Task { @MainActor in
@@ -48,12 +49,25 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     /// Shows a confirmation prompt before skipping a break.
     func showConfirmSkipNotification() {
+        guard !isMutedModeEnabled() else { return }
         ensureAuthorization { authorized in
             guard authorized else { return }
             Task { @MainActor in
                 NotificationManager.shared.postConfirmSkipNotification()
             }
         }
+    }
+
+    /// Removes break-related pending and delivered notifications.
+    func clearBreakNotifications() {
+        center?.removePendingNotificationRequests(withIdentifiers: [
+            "lingerly.break.due",
+            "lingerly.break.confirmSkip"
+        ])
+        center?.removeDeliveredNotifications(withIdentifiers: [
+            "lingerly.break.due",
+            "lingerly.break.confirmSkip"
+        ])
     }
 
     /// Requests permission when needed and reports whether posting is allowed.
@@ -201,6 +215,14 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        if isMutedModeEnabled() {
+            completionHandler([])
+            return
+        }
         completionHandler([.banner, .list, .sound])
+    }
+
+    private func isMutedModeEnabled() -> Bool {
+        UserDefaults.standard.bool(forKey: TimingSettingsKeys.mutedModeEnabled)
     }
 }

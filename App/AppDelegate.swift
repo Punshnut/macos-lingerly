@@ -6,6 +6,9 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
+    private let settingsStore = TimingSettingsStore()
+    private let launchAtLoginController = LaunchAtLoginController()
+    private let controlPanelViewModel = MenuBarPanelViewModel()
     private let menuBarTimerFixedWidth: CGFloat = {
         let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         let sample = "88:88:88" as NSString
@@ -17,18 +20,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     }()
     let appState = AppStateController()
-    private var startStopItem: NSMenuItem?
-    private var countdownItem: NSMenuItem?
-    private var countdownLabel: NSTextField?
-    private var takeBreakNowItem: NSMenuItem?
-    private var resetTimerItem: NSMenuItem?
     private var settingsItem: NSMenuItem?
     private var checkForUpdatesItem: NSMenuItem?
+    private var aboutItem: NSMenuItem?
     private var quitItem: NSMenuItem?
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var menuUpdateTimer: DispatchSourceTimer?
-    private var isMenuOpen = false
     private var hotkeyManager: GlobalHotkeyManager?
     private var defaultsObserver: NSObjectProtocol?
     
@@ -100,44 +98,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let menu = NSMenu()
         menu.showsStateColumn = false
 
-        let startStopItem = NSMenuItem(
-            title: String(localized: "Start"),
-            action: #selector(handleStartStop(_:)),
-            keyEquivalent: ""
-        )
-        startStopItem.target = self
-        menu.addItem(startStopItem)
-        self.startStopItem = startStopItem
-
-        let countdownItem = NSMenuItem(
-            title: String(localized: "Timer stopped"),
-            action: nil,
-            keyEquivalent: ""
-        )
-        countdownItem.isEnabled = false
-        countdownItem.view = makeCountdownView(initialTitle: countdownItem.title)
-        menu.addItem(countdownItem)
-        self.countdownItem = countdownItem
-
-        let takeBreakNowItem = NSMenuItem(
-            title: String(localized: "Overlay Title"),
-            action: #selector(handleTakeBreakNow(_:)),
-            keyEquivalent: ""
-        )
-        takeBreakNowItem.target = self
-        menu.addItem(takeBreakNowItem)
-        self.takeBreakNowItem = takeBreakNowItem
-
-        let resetTimerItem = NSMenuItem(
-            title: String(localized: "Reset Timer"),
-            action: #selector(handleResetTimer(_:)),
-            keyEquivalent: ""
-        )
-        resetTimerItem.target = self
-        menu.addItem(resetTimerItem)
-        self.resetTimerItem = resetTimerItem
-
-        menu.addItem(.separator())
+        configureControlPanelCallbacks()
+        let controlPanelItem = NSMenuItem()
+        controlPanelItem.view = makeControlPanelView()
+        menu.addItem(controlPanelItem)
 
         let settingsItem = NSMenuItem(
             title: String(localized: "Settings..."),
@@ -166,6 +130,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(checkForUpdatesItem)
         self.checkForUpdatesItem = checkForUpdatesItem
 
+        let aboutItem = NSMenuItem(
+            title: String(localized: "menu.about.title", defaultValue: "About Lingerly"),
+            action: #selector(openAbout(_:)),
+            keyEquivalent: ""
+        )
+        aboutItem.keyEquivalentModifierMask = []
+        aboutItem.target = self
+        let aboutImage = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
+        aboutImage?.isTemplate = true
+        aboutItem.image = aboutImage
+        menu.addItem(aboutItem)
+        self.aboutItem = aboutItem
+
         let quitItem = NSMenuItem(
             title: String(localized: "Quit Lingerly"),
             action: #selector(NSApplication.terminate(_:)),
@@ -187,30 +164,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settingsItem?.keyEquivalentModifierMask = []
         checkForUpdatesItem?.keyEquivalent = ""
         checkForUpdatesItem?.keyEquivalentModifierMask = []
+        aboutItem?.keyEquivalent = ""
+        aboutItem?.keyEquivalentModifierMask = []
         quitItem?.keyEquivalent = ""
         quitItem?.keyEquivalentModifierMask = []
     }
 
     /// Syncs menu bar icon and menu enablement with app state.
     private func refreshStatusUI() {
-        guard let button = statusItem?.button else { return }
-        button.image = appState.currentIconImage()
-        updateStartStopTitle()
+        statusItem?.button?.image = appState.currentIconImage()
         updateCountdownTitle()
-        let isRunning = appState.isRunning
-        takeBreakNowItem?.isEnabled = isRunning
-        resetTimerItem?.isEnabled = isRunning
-    }
-
-    /// Updates the menu title for Start/Stop based on run state.
-    private func updateStartStopTitle() {
-        let title = (!appState.isRunning || appState.isPaused) ? String(localized: "Start") : String(localized: "Stop")
-        startStopItem?.title = title
-    }
-
-    /// Toggles the timing engine on/off from the status menu.
-    @objc private func handleStartStop(_ sender: Any?) {
-        toggleStartStop()
     }
 
     private func toggleStartStop() {
@@ -223,17 +186,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// Forces an immediate break, bypassing the normal schedule.
-    @objc private func handleTakeBreakNow(_ sender: Any?) {
-        appState.takeBreakNow()
-    }
-
-    /// Resets the timer countdown from the status menu.
-    @objc private func handleResetTimer(_ sender: Any?) {
-        appState.resetTimer()
-        updateCountdownTitle()
-    }
-
     /// Opens the settings window from the status menu.
     @objc private func openSettings(_ sender: Any?) {
         showSettingsWindow()
@@ -244,9 +196,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updaterController?.checkForUpdates(sender)
     }
 
-    /// Terminates the app.
-    @objc private func quitApp(_ sender: Any?) {
-        NSApp.terminate(nil)
+    @objc private func openAbout(_ sender: Any?) {
+        NSApp.orderFrontStandardAboutPanel(sender)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     /// Creates (if needed) and brings forward the settings window.
@@ -304,6 +256,170 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         window.setFrameOrigin(origin)
     }
 
+    private func makeControlPanelView() -> NSView {
+        let panelView = MenuBarPanelView(model: controlPanelViewModel)
+        let hosting = NSHostingView(rootView: panelView)
+        hosting.frame = NSRect(
+            x: 0,
+            y: 0,
+            width: MenuBarPanelView.panelWidth,
+            height: MenuBarPanelView.panelHeight
+        )
+        return hosting
+    }
+
+    private func configureControlPanelCallbacks() {
+        controlPanelViewModel.onToggleStartStop = { [weak self] in
+            self?.toggleStartStop()
+            self?.refreshStatusUI()
+        }
+        controlPanelViewModel.onDeferOneMinute = { [weak self] in
+            self?.appState.deferNextBreak(byMinutes: 1)
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onDeferFiveMinutes = { [weak self] in
+            self?.appState.deferNextBreak(byMinutes: 5)
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onDeferFifteenMinutes = { [weak self] in
+            self?.appState.deferNextBreak(byMinutes: 15)
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onBringOneMinuteCloser = { [weak self] in
+            self?.appState.bringNextBreakCloser(byMinutes: 1)
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onBringFiveMinutesCloser = { [weak self] in
+            self?.appState.bringNextBreakCloser(byMinutes: 5)
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onBringFifteenMinutesCloser = { [weak self] in
+            self?.appState.bringNextBreakCloser(byMinutes: 15)
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onToggleMutedMode = { [weak self] in
+            guard let self else { return }
+            self.settingsStore.mutedModeEnabled.toggle()
+            self.appState.refreshMutedModeState()
+            self.updateCountdownTitle()
+        }
+        controlPanelViewModel.onTakeBreakNow = { [weak self] in
+            self?.appState.takeBreakNow()
+            self?.refreshStatusUI()
+        }
+        controlPanelViewModel.onResetTimer = { [weak self] in
+            self?.appState.resetTimer()
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onSkipBreak = { [weak self] in
+            self?.appState.skipBreak()
+            self?.refreshStatusUI()
+        }
+        controlPanelViewModel.onSetIntervalMinutes = { [weak self] value in
+            self?.settingsStore.intervalMinutes = max(1, min(value, 180))
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onSetBreakDurationSeconds = { [weak self] value in
+            self?.settingsStore.breakDurationSeconds = max(5, min(value, 1800))
+        }
+        controlPanelViewModel.onSetSnoozeMinutes = { value in
+            UserDefaults.standard.set(max(1, min(value, 60)), forKey: TimingSettingsKeys.snoozeMinutes)
+        }
+        controlPanelViewModel.onApplyPreset = { [weak self] presetID in
+            guard
+                let self,
+                let preset = TimingPresets.preset(for: presetID)
+            else { return }
+            self.settingsStore.applyPreset(preset)
+            self.updateCountdownTitle()
+        }
+        controlPanelViewModel.onSetModeActiveEnabled = { [weak self] enabled in
+            self?.settingsStore.modeActiveEnabled = enabled
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onSetModeScheduleEnabled = { [weak self] enabled in
+            self?.settingsStore.modeScheduleEnabled = enabled
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onSetMenuBarTimerEnabled = { [weak self] enabled in
+            self?.settingsStore.menuBarTimerEnabled = enabled
+            self?.applyMenuBarStatusWidth()
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onSetMediaPauseEnabled = { [weak self] enabled in
+            self?.settingsStore.mediaPauseEnabled = enabled
+        }
+        controlPanelViewModel.onSetResetOnUnlock = { [weak self] enabled in
+            self?.settingsStore.resetOnUnlock = enabled
+        }
+        controlPanelViewModel.onSetLaunchAtLoginEnabled = { [weak self] enabled in
+            self?.launchAtLoginController.setEnabled(enabled)
+            self?.refreshStatusUI()
+        }
+        controlPanelViewModel.onSetSmartPauseCooldownMinutes = { [weak self] value in
+            self?.settingsStore.smartPauseCooldownMinutes = value
+        }
+        controlPanelViewModel.onSetSmartPauseResumeBehavior = { [weak self] behavior in
+            let normalized: SmartPauseResumeBehavior = (behavior == .resetTimer) ? .resetTimer : .resumeTimer
+            self?.settingsStore.smartPauseResumeBehavior = normalized
+            self?.updateCountdownTitle()
+        }
+        controlPanelViewModel.onOpenSettings = { [weak self] in
+            self?.showSettingsWindow()
+        }
+    }
+
+    private func refreshControlPanelModel(statusTitle: String? = nil) {
+        launchAtLoginController.refresh()
+        controlPanelViewModel.isRunning = appState.isRunning
+        controlPanelViewModel.isPaused = appState.isPaused
+        controlPanelViewModel.intervalMinutes = settingsStore.intervalMinutes
+        controlPanelViewModel.breakDurationSeconds = settingsStore.breakDurationSeconds
+        controlPanelViewModel.snoozeMinutes = Self.currentSnoozeMinutes()
+        controlPanelViewModel.modeActiveEnabled = settingsStore.modeActiveEnabled
+        controlPanelViewModel.modeScheduleEnabled = settingsStore.modeScheduleEnabled
+        controlPanelViewModel.menuBarTimerEnabled = settingsStore.menuBarTimerEnabled
+        controlPanelViewModel.mediaPauseEnabled = settingsStore.mediaPauseEnabled
+        controlPanelViewModel.resetOnUnlock = settingsStore.resetOnUnlock
+        controlPanelViewModel.mutedModeEnabled = settingsStore.mutedModeEnabled
+        controlPanelViewModel.launchAtLoginEnabled = launchAtLoginController.isEnabled
+        controlPanelViewModel.smartPauseCooldownMinutes = settingsStore.smartPauseCooldownMinutes
+        controlPanelViewModel.smartPauseResumeBehavior = settingsStore.smartPauseResumeBehavior
+        controlPanelViewModel.selectedPresetID = selectedPresetID()
+
+        switch appState.nextBreakDisplay(at: Date()) {
+        case .inactive:
+            controlPanelViewModel.statusKind = .idle
+        case .paused:
+            controlPanelViewModel.statusKind = .paused
+        case .muted:
+            controlPanelViewModel.statusKind = .muted
+        case .cooldown:
+            controlPanelViewModel.statusKind = .cooldown
+        case .snoozing:
+            controlPanelViewModel.statusKind = .snoozing
+        case .breakDue:
+            controlPanelViewModel.statusKind = .breakDue
+        case .breakActive:
+            controlPanelViewModel.statusKind = .onBreak
+        case .running:
+            controlPanelViewModel.statusKind = .running
+        }
+        if let statusTitle {
+            controlPanelViewModel.statusText = statusTitle
+        }
+    }
+
+    private func selectedPresetID() -> String {
+        let currentInterval = settingsStore.intervalMinutes
+        let currentBreakSeconds = settingsStore.breakDurationSeconds
+        for preset in TimingPresets.all
+        where preset.intervalMinutes == currentInterval && preset.breakDurationSeconds == currentBreakSeconds {
+            return preset.id
+        }
+        return "custom"
+    }
+
     /// Starts a timer to keep the countdown label current.
     private func startMenuUpdateTimer() {
         stopMenuUpdateTimer()
@@ -316,21 +432,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menuUpdateTimer = timer
     }
 
-    /// Updates the countdown label in the status menu.
+    /// Updates countdown text for both the panel status bar and menu bar title.
     private func updateCountdownTitle() {
         let title = menuCountdownTitle(at: Date())
-        if isMenuOpen {
-            countdownItem?.title = title
-            countdownLabel?.stringValue = title
-            if let item = countdownItem {
-                statusItem?.menu?.itemChanged(item)
-            }
-        }
+        refreshControlPanelModel(statusTitle: title)
         let menuBarTitle = menuBarCountdownTitle(from: title)
         applyMenuBarStatusWidth()
         updateMenuBarButtonTitle(menuBarTitle)
         statusItem?.button?.image = appState.currentIconImage()
-        updateStartStopTitle()
     }
 
     private func menuCountdownTitle(at date: Date) -> String {
@@ -342,6 +451,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let countdown = AppStateController.formattedCountdown(remaining)
             let pausedTitle = String(format: String(localized: "Timer paused at %@"), countdown)
             return decorateForSmartPauseIfNeeded(pausedTitle)
+        case .muted(let seconds):
+            let remaining = AppStateController.formattedCountdown(seconds)
+            return String(
+                format: String(localized: "menu.status.muted_format", defaultValue: "Muted %@"),
+                remaining
+            )
         case .cooldown(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             let cooldownTitle = String(format: String(localized: "Cooldown %@"), remaining)
@@ -369,11 +484,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
     }
 
-    private func menuBarCountdownTitle(from menuTitle: String) -> String {
-        let enabled = UserDefaults.standard.bool(forKey: TimingSettingsKeys.menuBarTimerEnabled)
+    private func menuBarCountdownTitle(from _: String) -> String {
+        let enabled = settingsStore.menuBarTimerEnabled
         guard enabled && appState.isRunning else { return "" }
         switch appState.nextBreakDisplay(at: Date()) {
         case .running(let seconds):
+            return AppStateController.formattedCountdown(seconds)
+        case .muted(let seconds):
             return AppStateController.formattedCountdown(seconds)
         case .snoozing(let seconds):
             return AppStateController.formattedCountdown(seconds)
@@ -386,7 +503,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func applyMenuBarStatusWidth() {
         guard let statusItem else { return }
-        let timerEnabled = UserDefaults.standard.bool(forKey: TimingSettingsKeys.menuBarTimerEnabled)
+        let timerEnabled = settingsStore.menuBarTimerEnabled
         statusItem.length = timerEnabled ? menuBarTimerFixedWidth : NSStatusItem.variableLength
     }
 
@@ -407,38 +524,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         button.attributedTitle = NSAttributedString(string: title, attributes: attributes)
     }
 
-    private func makeCountdownView(initialTitle: String) -> NSView {
-        let label = NSTextField(labelWithString: initialTitle)
-        label.font = NSFont.menuFont(ofSize: 0)
-        label.textColor = .secondaryLabelColor
-        label.isBezeled = false
-        label.drawsBackground = false
-        label.isEditable = false
-        label.lineBreakMode = .byTruncatingTail
-        label.translatesAutoresizingMaskIntoConstraints = false
-
-        let container = NSView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            container.heightAnchor.constraint(equalToConstant: 22)
-        ])
-        countdownLabel = label
-        return container
-    }
-
     func menuWillOpen(_ menu: NSMenu) {
-        isMenuOpen = true
         clearFooterKeyEquivalents()
         updateCountdownTitle()
         startMenuUpdateTimer()
     }
 
     func menuDidClose(_ menu: NSMenu) {
-        isMenuOpen = false
         updateCountdownTitle()
     }
 
@@ -460,6 +552,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         refreshStatusUI()
         updateCountdownTitle()
+    }
+
+    private static func currentSnoozeMinutes() -> Int {
+        let value = UserDefaults.standard.integer(forKey: TimingSettingsKeys.snoozeMinutes)
+        return max(value, 1)
     }
     
     private static func isSparkleConfigurationValid() -> Bool {

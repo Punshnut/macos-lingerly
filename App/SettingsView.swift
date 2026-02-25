@@ -334,6 +334,12 @@ private struct GeneralSettingsView: View {
             return (String(localized: "Break due now"), true)
         case .paused:
             return (String(localized: "Timer paused"), true)
+        case .muted(let seconds):
+            let remaining = AppStateController.formattedCountdown(seconds)
+            return (
+                String(format: String(localized: "menu.status.muted_format", defaultValue: "Muted %@"), remaining),
+                false
+            )
         case .cooldown:
             return (String(localized: "Cooldown"), true)
         case .snoozing(let seconds):
@@ -773,7 +779,6 @@ private struct SmartPauseSettingsView: View {
                     Picker("", selection: $smartPauseResumeBehaviorRaw) {
                         Text(l("settings.pause_behavior.option_resume")).tag(SmartPauseResumeBehavior.resumeTimer.rawValue)
                         Text(l("settings.pause_behavior.option_reset")).tag(SmartPauseResumeBehavior.resetTimer.rawValue)
-                        Text(l("settings.pause_behavior.option_countdown")).tag(SmartPauseResumeBehavior.countDownDuringPause.rawValue)
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
