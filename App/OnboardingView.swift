@@ -56,8 +56,8 @@ struct OnboardingView: View {
         .animation(.easeInOut(duration: 0.25), value: step)
     }
 
-    /// Returns the view for the current step.
     @ViewBuilder
+    /// Selects the onboarding content for the current step.
     private func stepView() -> some View {
         switch step {
         case 0:
@@ -67,7 +67,7 @@ struct OnboardingView: View {
         }
     }
 
-    /// Step 2: choose behavior while fullscreen apps are active.
+    /// Step 1: choose behavior while fullscreen apps are active.
     private var fullscreenStep: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "Onboarding Fullscreen Title"))
@@ -103,7 +103,7 @@ struct OnboardingView: View {
         }
     }
 
-    /// Step 3: select a timing preset.
+    /// Step 2: select a timing preset.
     private var presetStep: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "Onboarding Preset Title"))

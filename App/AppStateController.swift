@@ -503,6 +503,7 @@ final class AppStateController {
         applySmartPauseState()
     }
 
+    /// Applies unlock behavior when the user returns after inactivity.
     private func handleUserActiveChange(isActive: Bool) {
         if isActive {
             let inactiveDuration = lastUserInactiveDate.map { Date().timeIntervalSince($0) }
@@ -524,7 +525,7 @@ final class AppStateController {
         }
     }
 
-    /// Re-evaluates smart pause behavior after settings changes.
+    /// Re-evaluates all smart-pause sources from current runtime state.
     private func refreshSmartPause() {
         isMediaConditionActive = settingsStore.mediaPauseEnabled && mediaPlaybackMonitor.isPlaying
         isAppConditionActive = appConditionIsActive(
@@ -536,8 +537,7 @@ final class AppStateController {
         applySmartPauseState()
     }
 
-    /// Re-evaluates smart pause after defaults changes and resumes immediately
-    /// if an active smart-pause source was disabled by the user.
+    /// Re-evaluates smart pause after defaults changes.
     private func refreshSmartPauseAfterSettingsChange() {
         let previousMediaConditionActive = isMediaConditionActive
         let previousAppConditionActive = isAppConditionActive
@@ -585,6 +585,7 @@ final class AppStateController {
         applySmartPauseState(bypassCooldownIfConditionsCleared: shouldBypassCooldown)
     }
 
+    /// Pauses/resumes the engine according to current smart-pause sources.
     private func applySmartPauseState(bypassCooldownIfConditionsCleared: Bool = false) {
         let shouldPause = isMediaConditionActive || isAppConditionActive || isScheduleConditionActive
         if shouldPause {
@@ -618,6 +619,7 @@ final class AppStateController {
         }
     }
 
+    /// Returns true when any configured tracked app is currently running.
     private func appConditionIsActive(
         runningBundleIDs: Set<String>,
         pauseForAppsEnabled: Bool,
@@ -628,6 +630,7 @@ final class AppStateController {
         return !trackedIDs.isEmpty && !trackedIDs.isDisjoint(with: runningBundleIDs)
     }
 
+    /// Recomputes schedule-based pause state and restarts polling when needed.
     private func refreshSmartPauseScheduleSource(at date: Date = Date()) {
         let isEnabled = settingsStore.smartPauseScheduleEnabled
         let periods = settingsStore.smartPauseSchedulePeriods
@@ -636,6 +639,7 @@ final class AppStateController {
         restartSmartPauseScheduleTimerIfNeeded()
     }
 
+    /// Evaluates active/inactive schedule periods at a specific timestamp.
     private func smartPauseTriggeredBySchedule(at date: Date, periods: [SmartPauseSchedulePeriod]) -> Bool {
         guard !periods.isEmpty else { return false }
 
@@ -664,6 +668,7 @@ final class AppStateController {
         return false
     }
 
+    /// Starts periodic schedule reevaluation while schedule-based pause is enabled.
     private func restartSmartPauseScheduleTimerIfNeeded() {
         stopSmartPauseScheduleTimer()
         guard isRunning, settingsStore.smartPauseScheduleEnabled, !settingsStore.smartPauseSchedulePeriods.isEmpty else { return }
@@ -676,11 +681,13 @@ final class AppStateController {
         }
     }
 
+    /// Stops periodic schedule reevaluation.
     private func stopSmartPauseScheduleTimer() {
         smartPauseScheduleTimer?.invalidate()
         smartPauseScheduleTimer = nil
     }
 
+    /// Restores the pre-snooze flow and optionally re-enters a deferred break.
     private func resumeAfterSnooze() {
         snoozeTimer?.invalidate()
         snoozeTimer = nil
@@ -709,6 +716,7 @@ final class AppStateController {
         }
     }
 
+    /// Clears all snooze timers and related state flags.
     private func clearSnooze() {
         snoozeTimer?.invalidate()
         snoozeTimer = nil
@@ -717,12 +725,14 @@ final class AppStateController {
         snoozeReturnToBreak = false
     }
 
+    /// Cancels any pending smart-pause cooldown countdown.
     private func cancelSmartPauseCooldown() {
         smartPauseCooldownTimer?.invalidate()
         smartPauseCooldownTimer = nil
         smartPauseCooldownEndDate = nil
     }
 
+    /// Resumes from smart pause using the configured resume behavior.
     private func resumeFromSmartPauseAfterCooldown() {
         cancelSmartPauseCooldown()
         guard isRunning, state == .running, isSmartPaused, !isManuallyPaused else { return }
@@ -734,6 +744,7 @@ final class AppStateController {
         smartPauseStartedAt = nil
     }
 
+    /// Returns remaining smart-pause cooldown seconds, if cooldown is active.
     private func smartPauseCooldownRemainingSeconds(at date: Date = Date()) -> Int? {
         guard let endDate = smartPauseCooldownEndDate else { return nil }
         return max(Int(ceil(endDate.timeIntervalSince(date))), 0)
@@ -813,6 +824,7 @@ final class AppStateController {
         return UserDefaults.standard.bool(forKey: OnboardingKeys.allowLockScreen)
     }
 
+    /// Returns whether break prompts should always use notifications only.
     private func shouldAlwaysNotifyOnly() -> Bool {
         UserDefaults.standard.bool(forKey: OnboardingKeys.alwaysNotificationOnly)
     }

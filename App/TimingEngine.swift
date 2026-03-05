@@ -1,6 +1,6 @@
 import Foundation
 
-/// Core timing state machine for breaks and reminder schedules.
+/// Drives break timing for interval, active-time, and schedule modes.
 @MainActor
 final class TimingEngine {
     enum State: Equatable {
@@ -10,7 +10,7 @@ final class TimingEngine {
         case breakActive
     }
 
-    /// Inputs that control how the engine schedules breaks.
+    /// Runtime configuration for break scheduling.
     struct Configuration: Equatable {
         var intervalMinutes: Int
         var breakDurationSeconds: Int
@@ -43,18 +43,18 @@ final class TimingEngine {
 
     private let dueGraceSeconds: TimeInterval = 4
 
-    /// Creates an engine with the given activity monitor and configuration.
+    /// Creates the engine with its activity source and initial configuration.
     init(activityMonitor: ActivityMonitor, configuration: Configuration) {
         self.activityMonitor = activityMonitor
         self.config = configuration
     }
 
-    /// Applies updated configuration without resetting state.
+    /// Updates configuration without resetting runtime state.
     func updateConfiguration(_ configuration: Configuration) {
         config = configuration
     }
 
-    /// Starts the timing loop from an idle state.
+    /// Starts timing from `idle`.
     func start() {
         guard state == .idle else { return }
         resetCounters()
@@ -63,14 +63,14 @@ final class TimingEngine {
         startTicking()
     }
 
-    /// Stops all timers and returns to idle.
+    /// Stops all timers and transitions to `idle`.
     func stop() {
         invalidateTimers()
         isPaused = false
         state = .idle
     }
 
-    /// Resets counters and returns to idle, clearing pending break state.
+    /// Clears counters and pending break state, then returns to `idle`.
     func reset() {
         invalidateTimers()
         pendingBreak = false
@@ -80,7 +80,7 @@ final class TimingEngine {
         state = .idle
     }
 
-    /// Begins the 1-second tick loop.
+    /// Starts the 1-second tick loop.
     private func startTicking() {
         lastTickDate = Date()
         tickTimer?.invalidate()
@@ -112,7 +112,7 @@ final class TimingEngine {
         }
     }
 
-    /// Pauses tick accumulation without resetting counters.
+    /// Pauses ticking without clearing counters.
     func pause() {
         guard state == .running, !isPaused else { return }
         isPaused = true
@@ -120,7 +120,7 @@ final class TimingEngine {
         tickTimer = nil
     }
 
-    /// Resumes ticking, optionally resetting counters.
+    /// Resumes ticking and optionally resets counters.
     func resume(resetCounters: Bool) {
         guard state == .running, isPaused else { return }
         if resetCounters {
@@ -146,7 +146,7 @@ final class TimingEngine {
         lastTickDate = Date()
     }
 
-    /// Evaluates interval/active-time thresholds.
+    /// Checks whether interval or active-time thresholds were reached.
     private func shouldTriggerInterval() -> Bool {
         let threshold = TimeInterval(max(config.intervalMinutes, 1) * 60)
         return TimingEvaluator.shouldTriggerInterval(
@@ -157,7 +157,7 @@ final class TimingEngine {
         )
     }
 
-    /// Returns true when a configured schedule time is reached.
+    /// Returns `true` once when a configured schedule minute is hit.
     private func shouldTriggerSchedule(at date: Date) -> Bool {
         guard config.modes.contains(.schedule) else { return false }
         let calendar = Calendar.current
@@ -175,7 +175,7 @@ final class TimingEngine {
         return false
     }
 
-    /// Marks a break as due and starts the grace timer.
+    /// Marks a break as due and starts the grace window timer.
     private func triggerBreak() {
         state = .breakDue
         pendingBreak = true
@@ -187,7 +187,7 @@ final class TimingEngine {
         }
     }
 
-    /// Starts an active break and schedules its end.
+    /// Starts a break immediately and schedules automatic completion.
     private func startBreak() {
         state = .breakActive
         pendingBreak = false
@@ -201,7 +201,7 @@ final class TimingEngine {
         }
     }
 
-    /// Ends the active break and returns to running state.
+    /// Finishes the active break and returns to `running`.
     private func endBreak() {
         onBreakCompleted?(max(config.breakDurationSeconds, 0))
         breakEndDate = nil
@@ -209,7 +209,7 @@ final class TimingEngine {
         state = .running
     }
 
-    /// Starts a break if one is pending and not vetoed by the caller.
+    /// Starts a pending break unless vetoed by `shouldStartBreak`.
     func attemptStartBreak() {
         guard pendingBreak else { return }
         if shouldStartBreak?() ?? true {
@@ -217,7 +217,7 @@ final class TimingEngine {
         }
     }
 
-    /// Cancels a pending/active break and resets counters.
+    /// Cancels any pending or active break and resets counters.
     func skipBreak() {
         pendingBreak = false
         dueTimer?.invalidate()
@@ -229,7 +229,7 @@ final class TimingEngine {
         state = .running
     }
 
-    /// Starts a break immediately when running.
+    /// Starts a break immediately when in `running`.
     func startBreakNow() {
         guard state == .running else { return }
         pendingBreak = false
@@ -238,7 +238,7 @@ final class TimingEngine {
         startBreak()
     }
 
-    /// Marks a break as due without starting it yet.
+    /// Transitions to `breakDue` without auto-starting the break.
     func markBreakDue() {
         guard state == .running else { return }
         pendingBreak = true
@@ -247,7 +247,7 @@ final class TimingEngine {
         state = .breakDue
     }
 
-    /// Converts an active break back into a pending break-due state.
+    /// Converts `breakActive` back to `breakDue`.
     func deferActiveBreakAsDue() {
         guard state == .breakActive else { return }
         pendingBreak = true

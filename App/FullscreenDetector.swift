@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 
-/// Detects whether the frontmost app is currently fullscreen.
+/// Detects whether the frontmost app is in fullscreen.
 final class FullscreenDetector {
     private(set) var isFullscreen = false {
         didSet {
@@ -13,7 +13,7 @@ final class FullscreenDetector {
 
     var onChange: ((Bool) -> Void)?
 
-    /// Subscribes to workspace events and evaluates fullscreen state.
+    /// Subscribes to workspace events and performs an initial check.
     init() {
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(self, selector: #selector(activeAppChanged), name: NSWorkspace.didActivateApplicationNotification, object: nil)
@@ -26,12 +26,12 @@ final class FullscreenDetector {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
-    /// Reevaluates fullscreen state when the active app or space changes.
+    /// Rechecks fullscreen state when active app or space changes.
     @objc private func activeAppChanged() {
         evaluate()
     }
 
-    /// Recomputes the fullscreen flag for the frontmost application.
+    /// Recomputes fullscreen state for the current frontmost app.
     func evaluate() {
         guard let app = NSWorkspace.shared.frontmostApplication else {
             isFullscreen = false
@@ -40,7 +40,7 @@ final class FullscreenDetector {
         isFullscreen = isFullscreenFrontmost(appPID: app.processIdentifier)
     }
 
-    /// Returns true when a visible window matches a screen's bounds.
+    /// Returns `true` when a visible app window matches any screen bounds.
     private func isFullscreenFrontmost(appPID: pid_t) -> Bool {
         let screenFrames = NSScreen.screens.map(\.frame)
         guard !screenFrames.isEmpty else { return false }

@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+/// Localized lookup with explicit fallback used by the menu panel.
 private func menuPanelL(_ key: String, _ fallback: String) -> String {
     NSLocalizedString(key, tableName: nil, bundle: .main, value: fallback, comment: "")
 }
@@ -279,6 +280,7 @@ struct MenuBarPanelView: View {
         .frame(width: 286)
     }
 
+    /// Renders a segmented tab button with animated selection state.
     private func tabButton(_ tab: Tab, title: String) -> some View {
         Button {
             withAnimation(.easeInOut(duration: 0.16)) {
@@ -532,6 +534,7 @@ struct MenuBarPanelView: View {
         )
     }
 
+    /// Starts long-running background animations once on initial appearance.
     private func startAmbientAnimations() {
         guard auroraDrift == false else { return }
         withAnimation(.easeInOut(duration: 10).repeatForever(autoreverses: true)) {
@@ -545,6 +548,7 @@ struct MenuBarPanelView: View {
         }
     }
 
+    /// Builds the compact circular action buttons used in the top control row.
     private func topActionButton(
         title: String? = nil,
         symbol: String? = nil,
@@ -584,6 +588,7 @@ struct MenuBarPanelView: View {
         .disabled(!isEnabled)
     }
 
+    /// Wraps content in the panel's shared frosted-glass container style.
     private func frostedIsland<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(spacing: 6) {
             content()
@@ -607,6 +612,7 @@ struct MenuBarPanelView: View {
         .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
     }
 
+    /// Renders a tappable settings toggle tile with current on/off state.
     private func settingTile(
         icon: String,
         title: String,
@@ -645,6 +651,7 @@ struct MenuBarPanelView: View {
         )
     }
 
+    /// Renders one selectable smart-pause resume behavior chip.
     private func resumeStyleChip(
         title: String,
         isSelected: Bool,
@@ -668,6 +675,7 @@ struct MenuBarPanelView: View {
         )
     }
 
+    /// Builds a full-width action button for break/session controls.
     private func actionButton(_ title: String, action: @escaping () -> Void, isEnabled: Bool) -> some View {
         Button(title, action: action)
             .buttonStyle(.plain)
@@ -686,6 +694,7 @@ struct MenuBarPanelView: View {
             .disabled(!isEnabled)
     }
 
+    /// Builds +/- quick-shift controls for adjusting next break timing.
     private func quickShiftButton(_ title: String, action: @escaping () -> Void, isEnabled: Bool) -> some View {
         Button(title, action: action)
             .buttonStyle(.plain)
@@ -704,6 +713,7 @@ struct MenuBarPanelView: View {
             .disabled(!isEnabled)
     }
 
+    /// Displays a value row with decrement/increment steppers.
     private func valueAdjustRow(
         title: String,
         valueText: String,
@@ -733,6 +743,7 @@ struct MenuBarPanelView: View {
         .frame(height: 22)
     }
 
+    /// Small circular stepper button used inside numeric rows.
     private func miniStepButton(symbol: String, action: @escaping () -> Void, isEnabled: Bool) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
@@ -753,6 +764,7 @@ struct MenuBarPanelView: View {
         .disabled(!isEnabled)
     }
 
+    /// Selects and applies a built-in timing preset.
     private func presetButton(title: String, presetID: String) -> some View {
         Button(title) {
             model.selectedPresetID = presetID
@@ -772,6 +784,7 @@ struct MenuBarPanelView: View {
         )
     }
 
+    /// Non-interactive visual tag used for the current custom preset state.
     private func presetTag(title: String, isSelected: Bool) -> some View {
         Text(title)
             .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -787,6 +800,7 @@ struct MenuBarPanelView: View {
             )
     }
 
+    /// Formats seconds as a concise localized duration for panel rows.
     private func formatDuration(seconds: Int) -> String {
         let total = max(seconds, 0)
         let minutes = total / 60
@@ -807,6 +821,7 @@ struct MenuBarPanelView: View {
         )
     }
 
+    /// Formats minutes using the localized short "x min" string.
     private func minutesText(_ minutes: Int) -> String {
         String(
             format: menuPanelL("menu.panel.value.minutes_format", "%d min"),
@@ -818,6 +833,7 @@ struct MenuBarPanelView: View {
 private struct GlassMaterialView: NSViewRepresentable {
     let material: NSVisualEffectView.Material
 
+    /// Creates the AppKit visual-effect background used by panel cards.
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.state = .active
@@ -826,6 +842,7 @@ private struct GlassMaterialView: NSViewRepresentable {
         return view
     }
 
+    /// Keeps material/state synchronized during SwiftUI updates.
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
         nsView.material = material
         nsView.state = .active

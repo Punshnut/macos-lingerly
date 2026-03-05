@@ -18,6 +18,7 @@ struct PauseTimerIntent: AppIntent {
     static let openAppWhenRun = true
 
     @MainActor
+    /// Pauses the running timer while preserving elapsed progress.
     func perform() throws -> some IntentResult {
         guard let appState = (NSApp.delegate as? AppDelegate)?.appState else {
             throw LingerlyIntentError.appUnavailable
@@ -33,6 +34,7 @@ struct ResumeTimerIntent: AppIntent {
     static let openAppWhenRun = true
 
     @MainActor
+    /// Resumes the timer if it is currently paused.
     func perform() throws -> some IntentResult {
         guard let appState = (NSApp.delegate as? AppDelegate)?.appState else {
             throw LingerlyIntentError.appUnavailable
@@ -48,6 +50,7 @@ struct SkipBreakIntent: AppIntent {
     static let openAppWhenRun = true
 
     @MainActor
+    /// Skips the current break prompt/session.
     func perform() throws -> some IntentResult {
         guard let appState = (NSApp.delegate as? AppDelegate)?.appState else {
             throw LingerlyIntentError.appUnavailable
@@ -63,6 +66,7 @@ struct SnoozeBreakIntent: AppIntent {
     static let openAppWhenRun = true
 
     @MainActor
+    /// Snoozes using the default duration configured in settings.
     func perform() throws -> some IntentResult {
         guard let appState = (NSApp.delegate as? AppDelegate)?.appState else {
             throw LingerlyIntentError.appUnavailable
@@ -78,6 +82,7 @@ struct ResetTimerIntent: AppIntent {
     static let openAppWhenRun = true
 
     @MainActor
+    /// Resets the current cycle counters without changing app configuration.
     func perform() throws -> some IntentResult {
         guard let appState = (NSApp.delegate as? AppDelegate)?.appState else {
             throw LingerlyIntentError.appUnavailable

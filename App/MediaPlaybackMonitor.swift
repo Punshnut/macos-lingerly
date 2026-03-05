@@ -40,6 +40,7 @@ final class MediaPlaybackMonitor: NSObject {
         startSystemAudioPolling()
     }
 
+    /// Removes playback observers and stops system-audio polling.
     deinit {
         systemAudioTimer?.invalidate()
         systemAudioTimer = nil
@@ -47,18 +48,22 @@ final class MediaPlaybackMonitor: NSObject {
         DistributedNotificationCenter.default().removeObserver(self)
     }
 
+    /// Handles playback updates emitted by Apple Music.
     @objc private func musicPlayerInfoDidChange(_ notification: Notification) {
         updateState(from: notification, key: "Player State", source: .musicApp)
     }
 
+    /// Handles playback updates emitted by Spotify.
     @objc private func spotifyPlaybackDidChange(_ notification: Notification) {
         updateState(from: notification, key: "Playback State", source: .spotify)
     }
 
+    /// Handles playback updates emitted by legacy iTunes notifications.
     @objc private func iTunesPlayerInfoDidChange(_ notification: Notification) {
         updateState(from: notification, key: "Player State", source: .iTunes)
     }
 
+    /// Normalizes player payloads into a shared playing/paused source state.
     private func updateState(from notification: Notification, key: String, source: Source) {
         guard let info = notification.userInfo,
               let state = info[key] as? String else {
@@ -75,6 +80,7 @@ final class MediaPlaybackMonitor: NSObject {
         }
     }
 
+    /// Updates one source and emits onChange when aggregate playback flips.
     private func setSource(_ source: Source, isPlaying: Bool) {
         sourceStates[source] = isPlaying
         let newValue = sourceStates.values.contains(true)
@@ -84,6 +90,7 @@ final class MediaPlaybackMonitor: NSObject {
         }
     }
 
+    /// Polls CoreAudio output state to detect non-app-specific playback.
     private func startSystemAudioPolling() {
         let timer = Timer.scheduledTimer(
             timeInterval: 1.5,
@@ -97,16 +104,19 @@ final class MediaPlaybackMonitor: NSObject {
         setSource(.systemAudio, isPlaying: initialState)
     }
 
+    /// Refreshes playback state from system output activity.
     @objc private func systemAudioTimerFired() {
         let isAudioRunning = isDefaultOutputDeviceRunning()
         setSource(.systemAudio, isPlaying: isAudioRunning)
     }
 
+    /// Returns true when the current default output device reports active audio.
     private func isDefaultOutputDeviceRunning() -> Bool {
         guard let deviceID = defaultOutputDeviceID() else { return false }
         return isDeviceRunning(deviceID)
     }
 
+    /// Resolves the current default CoreAudio output device identifier.
     private func defaultOutputDeviceID() -> AudioDeviceID? {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultOutputDevice,
@@ -128,8 +138,9 @@ final class MediaPlaybackMonitor: NSObject {
         return deviceID
     }
 
+    /// Queries CoreAudio for whether the supplied output device is running.
     private func isDeviceRunning(_ deviceID: AudioDeviceID) -> Bool {
-        var address = AudioObjectPropertyAddress(
+    var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain

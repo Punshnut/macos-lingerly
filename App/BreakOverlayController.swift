@@ -179,6 +179,7 @@ final class BreakOverlayController {
         return true
     }
 
+    /// Mirrors hold-to-skip behavior for mouse press/release input.
     private func handleMouseEvent(_ event: NSEvent) {
         if event.type == .leftMouseDown {
             holdState.startHold(source: .click, duration: holdDuration, completionDelay: skipCompletionDelay) { [weak self] in
@@ -189,6 +190,7 @@ final class BreakOverlayController {
         }
     }
 
+    /// Runs coordinated exit animation before invoking the skip callback.
     private func beginSkipSequence() {
         guard !isSkipSequenceActive else { return }
         isSkipSequenceActive = true
@@ -208,6 +210,7 @@ final class BreakOverlayController {
         }
     }
 
+    /// Orders all overlay windows out and restores the previous frontmost app.
     private func closeWindows() {
         windows.forEach { $0.orderOut(nil) }
         previousFrontmostApp?.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])

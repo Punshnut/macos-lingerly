@@ -7,12 +7,14 @@ struct WellnessReminderState {
     let workoutEnabled: Bool
 }
 
+/// Builds localized wellness reminder copy based on enabled suggestion types.
 enum WellnessReminderText {
     private struct Clause {
         let key: String
         let isEnabled: Bool
     }
 
+    /// Returns a complete reminder sentence for the provided wellness toggles.
     static func sentence(for state: WellnessReminderState) -> String {
         let base = localized("Wellness Reminder Base")
         let clauses = [
@@ -28,6 +30,7 @@ enum WellnessReminderText {
         return buildSentence(base: base, clauses: clauses)
     }
 
+    /// Reads wellness toggles from defaults and returns the composed sentence.
     static func sentenceFromDefaults(_ defaults: UserDefaults = .standard) -> String {
         let state = WellnessReminderState(
             hydrationEnabled: defaults.bool(forKey: TimingSettingsKeys.waterReminderEnabled),
@@ -38,6 +41,7 @@ enum WellnessReminderText {
         return sentence(for: state)
     }
 
+    /// Combines a base message with optional localized clause list punctuation.
     private static func buildSentence(base: String, clauses: [String]) -> String {
         let trimmedBase = base.trimmingCharacters(in: .whitespacesAndNewlines)
         let baseText = trimmedBase.hasSuffix(".") ? String(trimmedBase.dropLast()) : trimmedBase
@@ -51,6 +55,7 @@ enum WellnessReminderText {
         return "\(baseText), \(leadIn) \(list)."
     }
 
+    /// Joins clauses using localized conjunction semantics for list length.
     private static func joinClauses(_ clauses: [String], joiner: String) -> String {
         guard clauses.count > 1 else {
             return clauses.first ?? ""
@@ -63,6 +68,7 @@ enum WellnessReminderText {
         return "\(head), \(joiner) \(tail)"
     }
 
+    /// Chooses a localized lead-in phrase based on clause count.
     private static func selectLeadIn(for count: Int) -> String {
         let leadIns = [
             "Wellness Reminder Lead In 1",
@@ -73,6 +79,7 @@ enum WellnessReminderText {
         return localized(leadIns[index])
     }
 
+    /// Chooses a localized list joiner for the current clause count.
     private static func selectJoiner(for count: Int) -> String {
         let joiners = [
             "Wellness Reminder Joiner 1",
@@ -83,6 +90,7 @@ enum WellnessReminderText {
         return localized(joiners[index])
     }
 
+    /// Resolves a localized string for the supplied key.
     private static func localized(_ key: String) -> String {
         NSLocalizedString(key, comment: "")
     }

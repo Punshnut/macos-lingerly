@@ -5,11 +5,13 @@ struct HotkeyShortcut: Equatable {
     let keyCode: UInt32
     let modifiers: UInt32
 
+    /// Creates a shortcut from a key code and Carbon modifier bitmask.
     init(keyCode: UInt16, modifiers: UInt32) {
         self.keyCode = UInt32(keyCode)
         self.modifiers = modifiers
     }
 
+    /// Rehydrates a shortcut from the persisted `keyCode:modifiers` format.
     init?(serialized: String) {
         let parts = serialized.split(separator: ":", maxSplits: 1).map(String.init)
         guard parts.count == 2,
@@ -31,11 +33,13 @@ struct HotkeyShortcut: Equatable {
         return modifierText + keyText
     }
 
+    /// Builds a shortcut from a keyboard event captured by the recorder field.
     static func from(event: NSEvent) -> HotkeyShortcut? {
         let modifiers = carbonModifiers(from: event.modifierFlags)
         return HotkeyShortcut(keyCode: event.keyCode, modifiers: modifiers)
     }
 
+    /// Converts AppKit modifier flags to Carbon hotkey modifier flags.
     static func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
         var value: UInt32 = 0
         if flags.contains(.command) { value |= UInt32(cmdKey) }
@@ -45,6 +49,7 @@ struct HotkeyShortcut: Equatable {
         return value
     }
 
+    /// Converts a Carbon modifier mask into display glyphs.
     private static func modifierDisplay(_ modifiers: UInt32) -> String {
         var result = ""
         if modifiers & UInt32(controlKey) != 0 { result += "⌃" }
@@ -54,6 +59,7 @@ struct HotkeyShortcut: Equatable {
         return result
     }
 
+    /// Returns a user-facing key label for a key code.
     private static func keyDisplay(keyCode: UInt16) -> String {
         if let special = specialKeyMap[keyCode] {
             return special
@@ -65,6 +71,7 @@ struct HotkeyShortcut: Equatable {
         return String(format: format, keyCode)
     }
 
+    /// Resolves the printable scalar for an ANSI key using current layout data.
     private static func scalarForANSIKeyCode(_ keyCode: UInt16) -> UnicodeScalar? {
         guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
               let rawLayoutData = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData) else {
@@ -156,12 +163,14 @@ final class GlobalHotkeyManager {
     private let onAction: (Action) -> Void
     private let defaults: UserDefaults
 
+    /// Registers the app-level hotkey event handler.
     init(defaults: UserDefaults = .standard, onAction: @escaping (Action) -> Void) {
         self.defaults = defaults
         self.onAction = onAction
         installEventHandler()
     }
 
+    /// Unregisters all installed hotkeys and removes the event handler.
     deinit {
         unregisterAll()
         if let eventHandlerRef {
@@ -169,6 +178,7 @@ final class GlobalHotkeyManager {
         }
     }
 
+    /// Re-registers hotkeys from user defaults.
     func reload() {
         unregisterAll()
         for action in Action.allCases {
@@ -181,6 +191,7 @@ final class GlobalHotkeyManager {
         }
     }
 
+    /// Installs the Carbon event handler that receives hotkey press events.
     private func installEventHandler() {
         var eventSpec = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
@@ -203,6 +214,7 @@ final class GlobalHotkeyManager {
         )
     }
 
+    /// Registers a single Carbon hotkey for the provided action.
     private func register(shortcut: HotkeyShortcut, for action: Action) {
         var hotKeyRef: EventHotKeyRef?
         let hotKeyID = EventHotKeyID(signature: signature, id: action.rawValue)
@@ -218,6 +230,7 @@ final class GlobalHotkeyManager {
         hotkeyRefs[action] = hotKeyRef
     }
 
+    /// Unregisters every currently active Carbon hotkey.
     private func unregisterAll() {
         for (_, ref) in hotkeyRefs {
             UnregisterEventHotKey(ref)
@@ -225,6 +238,7 @@ final class GlobalHotkeyManager {
         hotkeyRefs.removeAll()
     }
 
+    /// Resolves the pressed hotkey action and dispatches it to the callback.
     private func handleHotkeyEvent(_ eventRef: EventRef) -> OSStatus {
         var hotKeyID = EventHotKeyID()
         let status = GetEventParameter(

@@ -55,6 +55,7 @@ final class ActivityMonitor {
         notifyUserActiveChange()
     }
 
+    /// Emits user-active changes only when the computed state actually flips.
     private func notifyUserActiveChange() {
         let current = isUserActive
         guard current != lastUserActive else { return }

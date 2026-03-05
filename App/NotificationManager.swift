@@ -1,7 +1,7 @@
 import Foundation
 @preconcurrency import UserNotifications
 
-/// Handles local notifications and routes their actions to app callbacks.
+/// Manages local notifications and maps actions back to app callbacks.
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     @MainActor static let shared = NotificationManager()
 
@@ -24,7 +24,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     private let center: UNUserNotificationCenter?
 
-    /// Initializes the notification center and registers action categories.
+    /// Initializes the notification center and registers categories.
     override init() {
         if Bundle.main.bundleURL.pathExtension == "app" {
             center = UNUserNotificationCenter.current()
@@ -36,7 +36,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         configureCategories(snoozeMinutes: currentSnoozeMinutes())
     }
 
-    /// Shows a notification indicating a break is due.
+    /// Posts the break-due notification when allowed.
     func showBreakDueNotification() {
         guard !isMutedModeEnabled() else { return }
         ensureAuthorization { authorized in
@@ -47,7 +47,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    /// Shows a confirmation prompt before skipping a break.
+    /// Posts the skip-confirmation notification when allowed.
     func showConfirmSkipNotification() {
         guard !isMutedModeEnabled() else { return }
         ensureAuthorization { authorized in
@@ -58,7 +58,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    /// Removes break-related pending and delivered notifications.
+    /// Clears pending and delivered break-related notifications.
     func clearBreakNotifications() {
         center?.removePendingNotificationRequests(withIdentifiers: [
             "lingerly.break.due",
@@ -70,7 +70,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         ])
     }
 
-    /// Requests permission when needed and reports whether posting is allowed.
+    /// Requests permission if needed, then reports whether posting is allowed.
     private func ensureAuthorization(_ completion: @escaping @Sendable (Bool) -> Void) {
         guard let center else {
             NSLog("Lingerly: notifications unavailable because app is not running from a .app bundle")
@@ -98,7 +98,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    /// Emits a compact diagnostics line to help identify OS-level suppression.
+    /// Logs compact notification settings for diagnostics.
     private static func logNotificationSettings(_ settings: UNNotificationSettings) {
         let auth = settings.authorizationStatus.rawValue
         let alert = settings.alertSetting.rawValue
@@ -114,6 +114,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     @MainActor
+    /// Posts the break-due notification after clearing previous copies.
     private func postBreakDueNotification() {
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Notification Break Due Title")
@@ -135,6 +136,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     @MainActor
+    /// Posts the destructive skip-confirmation notification.
     private func postConfirmSkipNotification() {
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Notification Skip Confirm Title")
@@ -155,7 +157,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    /// Registers notification categories and actions.
+    /// Registers notification categories and action buttons.
     private func configureCategories(snoozeMinutes: Int = 1) {
         guard let center else { return }
         let snoozeTitle = String.localizedStringWithFormat(String(localized: "Snooze 1 min"), max(snoozeMinutes, 1))
@@ -182,13 +184,13 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         center.setNotificationCategories([breakDueCategory, confirmCategory])
     }
 
-    /// Reads the configured snooze minutes from user defaults.
+    /// Reads snooze minutes from user defaults with a safe minimum.
     private func currentSnoozeMinutes() -> Int {
         let value = UserDefaults.standard.integer(forKey: TimingSettingsKeys.snoozeMinutes)
         return max(value, 1)
     }
 
-    /// Dispatches notification actions to the caller-provided handlers.
+    /// Dispatches selected notification actions to registered handlers.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
@@ -209,7 +211,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         completionHandler()
     }
 
-    /// Ensures banners are still presented when the app is currently active.
+    /// Allows banners while active unless muted mode is enabled.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
@@ -222,6 +224,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         completionHandler([.banner, .list, .sound])
     }
 
+    /// Reads muted mode directly from defaults to avoid stale in-memory state.
     private func isMutedModeEnabled() -> Bool {
         UserDefaults.standard.bool(forKey: TimingSettingsKeys.mutedModeEnabled)
     }

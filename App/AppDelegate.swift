@@ -61,7 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         showOnboardingIfNeeded()
     }
 
-    /// Keep the menu bar app alive when settings/onboarding windows close.
+    /// Keeps the menu bar app alive when settings/onboarding windows close.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
@@ -159,6 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         applyMenuBarStatusWidth()
     }
 
+    /// Removes default keyboard equivalents from footer-only menu actions.
     private func clearFooterKeyEquivalents() {
         settingsItem?.keyEquivalent = ""
         settingsItem?.keyEquivalentModifierMask = []
@@ -176,6 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateCountdownTitle()
     }
 
+    /// Toggles between start, pause, and resume based on current timer state.
     private func toggleStartStop() {
         if !appState.isRunning {
             appState.start()
@@ -196,6 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updaterController?.checkForUpdates(sender)
     }
 
+    /// Opens the standard macOS About panel and brings the app to front.
     @objc private func openAbout(_ sender: Any?) {
         NSApp.orderFrontStandardAboutPanel(sender)
         NSApp.activate(ignoringOtherApps: true)
@@ -241,6 +244,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// Centers a window on the screen under the mouse, falling back to main screen.
     private func centerWindow(_ window: NSWindow) {
         let mouseLocation = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouseLocation) }
@@ -256,6 +260,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         window.setFrameOrigin(origin)
     }
 
+    /// Wraps the SwiftUI menu panel in an AppKit hosting view for NSMenu embedding.
     private func makeControlPanelView() -> NSView {
         let panelView = MenuBarPanelView(model: controlPanelViewModel)
         let hosting = NSHostingView(rootView: panelView)
@@ -268,6 +273,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return hosting
     }
 
+    /// Wires menu panel actions to app state mutations and UI refreshes.
     private func configureControlPanelCallbacks() {
         controlPanelViewModel.onToggleStartStop = { [weak self] in
             self?.toggleStartStop()
@@ -369,6 +375,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// Copies live app/settings values into the menu panel view model.
     private func refreshControlPanelModel(statusTitle: String? = nil) {
         launchAtLoginController.refresh()
         controlPanelViewModel.isRunning = appState.isRunning
@@ -410,6 +417,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// Returns the preset id matching the current interval/duration, or `custom`.
     private func selectedPresetID() -> String {
         let currentInterval = settingsStore.intervalMinutes
         let currentBreakSeconds = settingsStore.breakDurationSeconds
@@ -442,6 +450,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem?.button?.image = appState.currentIconImage()
     }
 
+    /// Builds the human-readable status line shown in the control panel.
     private func menuCountdownTitle(at date: Date) -> String {
         switch appState.nextBreakDisplay(at: date) {
         case .inactive:
@@ -475,6 +484,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// Prefixes status text with a smart-pause source code when active.
     private func decorateForSmartPauseIfNeeded(_ title: String) -> String {
         guard let smartPauseCode = appState.smartPauseCode() else { return title }
         return String(
@@ -484,6 +494,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
     }
 
+    /// Computes the compact menu bar timer title based on current display state.
     private func menuBarCountdownTitle(from _: String) -> String {
         let enabled = settingsStore.menuBarTimerEnabled
         guard enabled && appState.isRunning else { return "" }
@@ -501,12 +512,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// Applies fixed width when timer text is enabled to avoid menu bar jitter.
     private func applyMenuBarStatusWidth() {
         guard let statusItem else { return }
         let timerEnabled = settingsStore.menuBarTimerEnabled
         statusItem.length = timerEnabled ? menuBarTimerFixedWidth : NSStatusItem.variableLength
     }
 
+    /// Updates the menu bar button title using monospaced digits for stability.
     private func updateMenuBarButtonTitle(_ title: String) {
         guard let button = statusItem?.button else { return }
         button.title = ""
@@ -524,21 +537,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         button.attributedTitle = NSAttributedString(string: title, attributes: attributes)
     }
 
+    /// Refreshes state and starts per-second updates while the menu is open.
     func menuWillOpen(_ menu: NSMenu) {
         clearFooterKeyEquivalents()
         updateCountdownTitle()
         startMenuUpdateTimer()
     }
 
+    /// Refreshes the status text when the menu closes.
     func menuDidClose(_ menu: NSMenu) {
         updateCountdownTitle()
     }
 
+    /// Tears down the open-menu countdown timer if present.
     private func stopMenuUpdateTimer() {
         menuUpdateTimer?.cancel()
         menuUpdateTimer = nil
     }
 
+    /// Maps global hotkey actions to controller commands and UI refreshes.
     private func handleHotkeyAction(_ action: GlobalHotkeyManager.Action) {
         switch action {
         case .startStop:
@@ -554,11 +571,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateCountdownTitle()
     }
 
+    /// Reads snooze minutes from defaults with a minimum of one.
     private static func currentSnoozeMinutes() -> Int {
         let value = UserDefaults.standard.integer(forKey: TimingSettingsKeys.snoozeMinutes)
         return max(value, 1)
     }
     
+    /// Validates required Sparkle feed settings before enabling update checks.
     private static func isSparkleConfigurationValid() -> Bool {
         guard
             let info = Bundle.main.infoDictionary,

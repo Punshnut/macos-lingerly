@@ -1,11 +1,11 @@
 import Foundation
 
-/// Represents a clock time used for scheduled break reminders.
+/// Clock time used for schedule-mode break reminders.
 struct ScheduleTime: Hashable {
     let hour: Int
     let minute: Int
 
-    /// Creates a time if the hour/minute are within valid ranges.
+    /// Creates a time when hour/minute are within valid bounds.
     init?(hour: Int, minute: Int) {
         guard (0...23).contains(hour), (0...59).contains(minute) else { return nil }
         self.hour = hour
@@ -23,19 +23,19 @@ struct ScheduleTime: Hashable {
         self.init(hour: hour, minute: minute)
     }
 
-    /// Formats the time as a `HH:mm` string.
+    /// Returns the `HH:mm` representation.
     var stringValue: String {
         String(format: "%02d:%02d", hour, minute)
     }
 }
 
-/// Whether a smart-pause schedule period defines active or inactive time.
+/// Marks whether a smart-pause period is active-time or inactive-time.
 enum SmartPauseScheduleMode: String, Codable, CaseIterable {
     case active
     case inactive
 }
 
-/// Daily time range used by smart-pause schedule automation.
+/// Daily time range used by smart-pause schedule logic.
 struct SmartPauseSchedulePeriod: Codable, Hashable, Identifiable {
     let id: UUID
     var mode: SmartPauseScheduleMode
@@ -44,6 +44,7 @@ struct SmartPauseSchedulePeriod: Codable, Hashable, Identifiable {
     /// 1...7 in Calendar weekday order (1 = Sunday).
     var weekdays: Set<Int>
 
+    /// Creates a schedule period with clamped minutes and valid weekdays.
     init(
         id: UUID = UUID(),
         mode: SmartPauseScheduleMode,
@@ -58,11 +59,12 @@ struct SmartPauseSchedulePeriod: Codable, Hashable, Identifiable {
         self.weekdays = Set(weekdays.filter { (1...7).contains($0) })
     }
 
+    /// Clamps minute-of-day values into the valid 00:00...23:59 range.
     static func clampMinute(_ minute: Int) -> Int {
         min(max(minute, 0), 1_439)
     }
 
-    /// Returns true if this period applies to the given date.
+    /// Returns `true` when this period applies at the given date.
     func contains(_ date: Date, calendar: Calendar = .current) -> Bool {
         let weekday = calendar.component(.weekday, from: date)
         let minute = calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
@@ -86,7 +88,7 @@ struct SmartPauseSchedulePeriod: Codable, Hashable, Identifiable {
     }
 }
 
-/// Selected timing modes that can be combined together.
+/// Timing mode bit flags that can be combined.
 struct TimingModes: OptionSet {
     let rawValue: Int
 
@@ -95,14 +97,14 @@ struct TimingModes: OptionSet {
     static let schedule = TimingModes(rawValue: 1 << 2)
 }
 
-/// What to do when an automatic smart-pause condition ends.
+/// Behavior to apply when smart pause ends.
 enum SmartPauseResumeBehavior: String, CaseIterable {
     case resumeTimer
     case resetTimer
     case countDownDuringPause
 }
 
-/// App bundle rule used for "pause while this app is open".
+/// App rule used by pause-while-app-open logic.
 struct PauseAppRule: Codable, Hashable, Identifiable {
     let bundleIdentifier: String
     let displayName: String
@@ -111,7 +113,7 @@ struct PauseAppRule: Codable, Hashable, Identifiable {
     var id: String { bundleIdentifier.lowercased() }
 }
 
-/// Preset configuration for interval and break duration.
+/// Built-in preset values for interval and break duration.
 struct TimingPreset: Identifiable {
     let id: String
     let intervalMinutes: Int

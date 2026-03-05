@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Shorthand localization helper used throughout the settings UI.
 private func l(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
 }
@@ -56,6 +57,7 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    /// Creates one labeled sidebar entry for a settings section.
     private func sidebarRow(_ item: SettingsSidebarItem) -> some View {
         Label(item.title, systemImage: item.systemImage)
             .tag(item)
@@ -64,6 +66,7 @@ struct SettingsView: View {
 
 private extension View {
     @ViewBuilder
+    /// Applies platform-specific toolbar tweaks for the settings window.
     func applySettingsToolbar() -> some View {
         if #available(macOS 14.0, *) {
             self.toolbar(removing: .sidebarToggle)
@@ -80,14 +83,17 @@ private extension View {
 private struct SettingsWindowToolbarHider: NSViewRepresentable {
     let selection: SettingsSidebarItem?
 
+    /// Creates the toolbar-hiding bridge coordinator.
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
 
+    /// Returns a passive host view used to access the containing NSWindow.
     func makeNSView(context: Context) -> NSView {
         NSView()
     }
 
+    /// Hides sidebar controls in the host window toolbar.
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async { [weak nsView] in
             guard let window = nsView?.window else { return }
@@ -96,6 +102,7 @@ private struct SettingsWindowToolbarHider: NSViewRepresentable {
     }
 
     @MainActor
+    /// Applies toolbar cleanup and installs the placeholder toolbar item.
     private static func updateWindow(_ window: NSWindow, coordinator: Coordinator) {
         window.titlebarSeparatorStyle = .none
         window.titlebarAppearsTransparent = true
@@ -126,14 +133,17 @@ private struct SettingsWindowToolbarHider: NSViewRepresentable {
     final class Coordinator: NSObject, NSToolbarDelegate {
         private let placeholderIdentifier = NSToolbarItem.Identifier("SettingsToolbarPlaceholder")
 
+        /// Restricts toolbar items to an invisible placeholder.
         func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
             [placeholderIdentifier]
         }
 
+        /// Sets the default toolbar contents to the placeholder item.
         func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
             [placeholderIdentifier]
         }
 
+        /// Creates an invisible toolbar item that preserves titlebar layout.
         func toolbar(
             _ toolbar: NSToolbar,
             itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
@@ -154,6 +164,7 @@ private struct SettingsWindowToolbarHider: NSViewRepresentable {
         }
 
         @MainActor
+        /// Inserts a hidden placeholder item if the toolbar is currently empty.
         func ensurePlaceholderItem(in toolbar: NSToolbar) {
             if toolbar.items.contains(where: { $0.itemIdentifier == placeholderIdentifier }) {
                 return
@@ -323,6 +334,7 @@ private struct GeneralSettingsView: View {
         }
     }
 
+    /// Maps next-break display state to a user-facing string and accent hint.
     private func nextPauseValue(for display: AppStateController.NextBreakDisplay) -> (String, Bool) {
         switch display {
         case .running(let seconds):
@@ -450,11 +462,13 @@ private struct BreakScheduleSettingsView: View {
         }
     }
 
+    /// Opens the custom preset sheet prefilled with current values.
     private func openCustomPreset() {
         loadCustomPreset()
         showingCustomPreset = true
     }
 
+    /// Applies a built-in preset id to interval and break duration settings.
     private func applyPreset(_ id: String) {
         switch id {
         case "20-20-20":
@@ -468,6 +482,7 @@ private struct BreakScheduleSettingsView: View {
         }
     }
 
+    /// Loads current persisted values into editable custom preset fields.
     private func loadCustomPreset() {
         let focusTotalMinutes = max(reminderIntervalMinutes, 1)
         customFocusHours = focusTotalMinutes / 60
@@ -478,6 +493,7 @@ private struct BreakScheduleSettingsView: View {
         customBreakSeconds = clampedBreakSeconds % 60
     }
 
+    /// Commits custom preset values back to persisted timing settings.
     private func applyCustomPreset() {
         let focusTotalMinutes = max(1, customFocusHours * 60 + customFocusMinutes)
         let breakTotalSeconds = max(1, customBreakMinutes * 60 + customBreakSeconds)
@@ -485,6 +501,7 @@ private struct BreakScheduleSettingsView: View {
         breakDurationSeconds = clampBreakSeconds(breakTotalSeconds)
     }
 
+    /// Formats break duration as `m:ss` for summary display.
     private func formattedBreakDuration(_ seconds: Int) -> String {
         let totalSeconds = clampBreakSeconds(seconds)
         let minutes = totalSeconds / 60
@@ -492,6 +509,7 @@ private struct BreakScheduleSettingsView: View {
         return String(format: "%d:%02d", minutes, secs)
     }
 
+    /// Clamps editable break seconds into a safe one-hour range.
     private func clampBreakSeconds(_ seconds: Int) -> Int {
         min(max(seconds, 1), 3599)
     }
@@ -544,6 +562,7 @@ private struct CustomPresetSheet: View {
     }
 
     @ViewBuilder
+    /// Time editor row for focus duration (hours + minutes).
     private func durationRow(
         title: String,
         hours: Binding<Int>,
@@ -580,6 +599,7 @@ private struct CustomPresetSheet: View {
     }
 
     @ViewBuilder
+    /// Time editor row for break duration (minutes + seconds).
     private func durationRow(
         title: String,
         minutes: Binding<Int>,
@@ -622,10 +642,12 @@ private struct PresetSegmentedControl: NSViewRepresentable {
     let ids: [String]
     let onReselect: () -> Void
 
+    /// Creates coordinator for segmented-control events.
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
+    /// Builds an AppKit segmented control for preset selection.
     func makeNSView(context: Context) -> NSSegmentedControl {
         let control = NSSegmentedControl(labels: labels, trackingMode: .selectOne, target: context.coordinator, action: #selector(Coordinator.changed(_:)))
         control.segmentStyle = .rounded
@@ -637,6 +659,7 @@ private struct PresetSegmentedControl: NSViewRepresentable {
         return control
     }
 
+    /// Keeps selected segment and labels in sync with SwiftUI state.
     func updateNSView(_ nsView: NSSegmentedControl, context: Context) {
         context.coordinator.parent = self
         if labels.count == nsView.segmentCount {
@@ -659,6 +682,7 @@ private struct PresetSegmentedControl: NSViewRepresentable {
     final class Coordinator: NSObject {
         var parent: PresetSegmentedControl
 
+        /// Captures the representable parent for event callbacks.
         init(_ parent: PresetSegmentedControl) {
             self.parent = parent
         }
@@ -877,6 +901,7 @@ private struct PauseAppsListEditor: View {
         .opacity(isEnabled ? 1 : 0.6)
     }
 
+    /// Prompts for an app bundle and adds it to pause-on-app-open rules.
     private func addAppRule() {
         let panel = NSOpenPanel()
         panel.title = l("settings.pause_apps.panel.title")
@@ -903,6 +928,7 @@ private struct PauseAppsListEditor: View {
         upsert(newRule)
     }
 
+    /// Inserts or replaces an app pause rule by normalized bundle id.
     private func upsert(_ rule: PauseAppRule) {
         let key = rule.bundleIdentifier.lowercased()
         rules.removeAll { $0.bundleIdentifier.lowercased() == key }
@@ -912,6 +938,7 @@ private struct PauseAppsListEditor: View {
         }
     }
 
+    /// Removes a pause rule matching the given bundle id.
     private func removeRule(_ rule: PauseAppRule) {
         let key = rule.bundleIdentifier.lowercased()
         rules.removeAll { $0.bundleIdentifier.lowercased() == key }
@@ -1011,6 +1038,7 @@ private struct SmartPauseScheduleEditor: View {
         }
     }
 
+    /// Renders the simplified schedule editor for a single period.
     private func quickEditor(for period: SmartPauseSchedulePeriod) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("", selection: Binding(
@@ -1129,6 +1157,7 @@ private struct SmartPauseScheduleEditor: View {
         }
     }
 
+    /// Applies an in-place mutation to the first quick-edit schedule period.
     private func mutateFirst(_ mutate: (inout SmartPauseSchedulePeriod) -> Void) {
         guard !periods.isEmpty else { return }
         var first = periods[0]
@@ -1136,6 +1165,7 @@ private struct SmartPauseScheduleEditor: View {
         periods[0] = first
     }
 
+    /// Returns the default weekday 09:00-17:00 active period.
     private func defaultPeriod() -> SmartPauseSchedulePeriod {
         SmartPauseSchedulePeriod(
             mode: .active,
@@ -1145,6 +1175,7 @@ private struct SmartPauseScheduleEditor: View {
         )
     }
 
+    /// Converts minute-of-day into a Date anchored to today.
     private func date(fromMinute minute: Int) -> Date {
         let calendar = Calendar.current
         let now = Date()
@@ -1152,6 +1183,7 @@ private struct SmartPauseScheduleEditor: View {
         return calendar.date(byAdding: .minute, value: SmartPauseSchedulePeriod.clampMinute(minute), to: day) ?? now
     }
 
+    /// Converts a Date into clamped minute-of-day representation.
     private func minute(from date: Date) -> Int {
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
         let hour = components.hour ?? 0
@@ -1248,6 +1280,7 @@ private struct SmartPauseSchedulePeriodRow: View {
         .opacity(isEnabled ? 1 : 0.6)
     }
 
+    /// Converts minute-of-day into a Date for row-level DatePickers.
     private func date(fromMinute minute: Int) -> Date {
         let calendar = Calendar.current
         let now = Date()
@@ -1255,6 +1288,7 @@ private struct SmartPauseSchedulePeriodRow: View {
         return calendar.date(byAdding: .minute, value: SmartPauseSchedulePeriod.clampMinute(minute), to: day) ?? now
     }
 
+    /// Converts DatePicker values back into clamped minute-of-day.
     private func minute(from date: Date) -> Int {
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
         let hour = components.hour ?? 0
@@ -1286,6 +1320,7 @@ private struct WeekdayPicker: View {
         }
     }
 
+    /// Returns a short two-letter weekday label for the supplied weekday index.
     private func shortWeekday(_ weekday: Int) -> String {
         let symbols = Calendar.current.shortWeekdaySymbols
         let index = max(0, min(weekday - 1, symbols.count - 1))
@@ -1477,10 +1512,12 @@ private struct ShortcutsSettingsView: View {
 private struct HotkeyRecorderField: NSViewRepresentable {
     @Binding var shortcutValue: String
 
+    /// Creates coordinator that writes recorder output into the binding.
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
     }
 
+    /// Creates the AppKit hotkey recorder view and hooks change callbacks.
     func makeNSView(context: Context) -> HotkeyRecorderView {
         let view = HotkeyRecorderView()
         view.onShortcutChange = { [weak coordinator = context.coordinator] shortcut in
@@ -1489,6 +1526,7 @@ private struct HotkeyRecorderField: NSViewRepresentable {
         return view
     }
 
+    /// Syncs serialized shortcut value from SwiftUI into the recorder view.
     func updateNSView(_ nsView: HotkeyRecorderView, context: Context) {
         context.coordinator.parent = self
         nsView.shortcut = HotkeyShortcut(serialized: shortcutValue)
@@ -1498,10 +1536,12 @@ private struct HotkeyRecorderField: NSViewRepresentable {
     final class Coordinator {
         var parent: HotkeyRecorderField
 
+        /// Captures the representable parent for binding updates.
         init(parent: HotkeyRecorderField) {
             self.parent = parent
         }
 
+        /// Persists a newly recorded shortcut into its serialized form.
         func apply(shortcut: HotkeyShortcut?) {
             parent.shortcutValue = shortcut?.serialized ?? ""
         }
@@ -1603,6 +1643,7 @@ private final class HotkeyRecorderView: NSView {
         super.draw(dirtyRect)
     }
 
+    /// Configures the recorder label and layout constraints.
     private func setup() {
         wantsLayer = false
         translatesAutoresizingMaskIntoConstraints = false
@@ -1624,6 +1665,7 @@ private final class HotkeyRecorderView: NSView {
         updateLabel()
     }
 
+    /// Updates recorder label text/color based on focus and shortcut state.
     private func updateLabel() {
         let isDarkMode = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         if let shortcut {
@@ -1806,6 +1848,7 @@ private struct SettingsCard<Content: View>: View {
     @ViewBuilder let content: Content
     @Environment(\.colorScheme) private var colorScheme
 
+    /// Creates a reusable settings card with optional subtitle and body content.
     init(_ title: String, subtitle: String? = nil, @ViewBuilder content: () -> Content) {
         self.title = title
         self.subtitle = subtitle
@@ -1861,6 +1904,7 @@ private struct SettingsRow<Accessory: View>: View {
     var badge: String? = nil
     @ViewBuilder let accessory: Accessory
 
+    /// Creates a standard row with icon/text and a trailing accessory view.
     init(icon: String, title: String, subtitle: String, badge: String? = nil, @ViewBuilder accessory: () -> Accessory) {
         self.icon = icon
         self.title = title

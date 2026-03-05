@@ -56,6 +56,7 @@ enum StatusIconRenderer {
         return image
     }
 
+    /// Draws the muted glyph by overlaying a slash on the ring icon.
     private static func drawMuted(at center: CGPoint) {
         drawRing(at: center, radius: 5.0, lineWidth: 1.3)
         let slash = NSBezierPath()
@@ -66,6 +67,7 @@ enum StatusIconRenderer {
         slash.stroke()
     }
 
+    /// Draws a centered circular ring.
     private static func drawRing(at center: CGPoint, radius: CGFloat, lineWidth: CGFloat) {
         let ringRect = NSRect(
             x: center.x - radius,
@@ -78,6 +80,7 @@ enum StatusIconRenderer {
         ring.stroke()
     }
 
+    /// Draws a pause symbol with rounded vertical bars.
     private static func drawPause(at center: CGPoint, barHeight: CGFloat, barWidth: CGFloat) {
         let barCorner: CGFloat = 0.7
         let barOffset: CGFloat = 3.0
@@ -98,6 +101,7 @@ enum StatusIconRenderer {
         NSBezierPath(roundedRect: rightBar, xRadius: barCorner, yRadius: barCorner).fill()
     }
 
+    /// Draws a triangular play symbol.
     private static func drawPlay(at center: CGPoint, width: CGFloat, height: CGFloat) {
         let halfHeight = height / 2
         let path = NSBezierPath()

@@ -1,6 +1,6 @@
 import Foundation
 
-/// UserDefaults keys for timing configuration and reminders.
+/// UserDefaults keys for timing and reminder settings.
 enum TimingSettingsKeys {
     static let intervalMinutes = "lingerly.reminderIntervalMinutes"
     static let breakDurationSeconds = "lingerly.breakDurationSeconds"
@@ -32,7 +32,7 @@ enum TimingSettingsKeys {
     static let hotkeySnoozePrompt = "lingerly.hotkey.snoozePrompt"
 }
 
-/// Thin wrapper around UserDefaults for timing configuration.
+/// Typed access layer over timing-related UserDefaults values.
 final class TimingSettingsStore {
     private let defaults: UserDefaults
 
@@ -41,7 +41,7 @@ final class TimingSettingsStore {
         self.defaults = defaults
     }
 
-    /// Interval minutes for break reminders.
+    /// Reminder interval in minutes.
     var intervalMinutes: Int {
         get { value(forKey: TimingSettingsKeys.intervalMinutes, defaultValue: 20) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.intervalMinutes) }
@@ -53,37 +53,37 @@ final class TimingSettingsStore {
         set { defaults.set(newValue, forKey: TimingSettingsKeys.breakDurationSeconds) }
     }
 
-    /// Whether the interval timer mode is enabled.
+    /// Enables interval mode.
     var modeIntervalEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.modeIntervalEnabled, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.modeIntervalEnabled) }
     }
 
-    /// Whether active-time mode is enabled.
+    /// Enables active-time mode.
     var modeActiveEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.modeActiveEnabled, defaultValue: true) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.modeActiveEnabled) }
     }
 
-    /// Whether schedule-based reminders are enabled.
+    /// Enables schedule mode.
     var modeScheduleEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.modeScheduleEnabled, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.modeScheduleEnabled) }
     }
 
-    /// Whether timing pauses while media is playing.
+    /// Pauses timing while media is playing.
     var mediaPauseEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.mediaPauseEnabled, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.mediaPauseEnabled) }
     }
 
-    /// Whether the timer resets when media playback ends.
+    /// Legacy flag for reset-on-resume behavior migration.
     var mediaResetOnResume: Bool {
         get { bool(forKey: TimingSettingsKeys.mediaResetOnResume, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.mediaResetOnResume) }
     }
 
-    /// Behavior used after a smart pause ends.
+    /// Resume behavior applied after smart pause ends.
     var smartPauseResumeBehavior: SmartPauseResumeBehavior {
         get {
             if let raw = defaults.string(forKey: TimingSettingsKeys.smartPauseResumeBehavior),
@@ -100,19 +100,19 @@ final class TimingSettingsStore {
         set { defaults.set(newValue.rawValue, forKey: TimingSettingsKeys.smartPauseResumeBehavior) }
     }
 
-    /// Cooldown before smart pause resumes after a condition ends.
+    /// Cooldown minutes before resuming after smart pause.
     var smartPauseCooldownMinutes: Int {
         get { value(forKey: TimingSettingsKeys.smartPauseCooldownMinutes, defaultValue: 1) }
         set { defaults.set(max(1, min(newValue, 5)), forKey: TimingSettingsKeys.smartPauseCooldownMinutes) }
     }
 
-    /// Whether schedule-based smart pause is enabled.
+    /// Enables schedule-driven smart pause.
     var smartPauseScheduleEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.smartPauseScheduleEnabled, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.smartPauseScheduleEnabled) }
     }
 
-    /// Daily schedule periods that control smart pause.
+    /// Schedule periods used for smart pause.
     var smartPauseSchedulePeriods: [SmartPauseSchedulePeriod] {
         get {
             guard let data = defaults.data(forKey: TimingSettingsKeys.smartPauseSchedulePeriods) else { return [] }
@@ -124,13 +124,13 @@ final class TimingSettingsStore {
         }
     }
 
-    /// Whether app-based smart pause is enabled.
+    /// Enables app-based smart pause.
     var pauseForAppsEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.pauseForAppsEnabled, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.pauseForAppsEnabled) }
     }
 
-    /// App bundle ids that trigger smart pause while running.
+    /// App rules that trigger smart pause while running.
     var pauseForAppsRules: [PauseAppRule] {
         get {
             guard let data = defaults.data(forKey: TimingSettingsKeys.pauseForAppsRules) else { return [] }
@@ -142,25 +142,25 @@ final class TimingSettingsStore {
         }
     }
 
-    /// Whether the timer resets when the user unlocks the Mac.
+    /// Resets the timer when the user unlocks the Mac.
     var resetOnUnlock: Bool {
         get { bool(forKey: TimingSettingsKeys.resetOnUnlock, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.resetOnUnlock) }
     }
 
-    /// Whether to show the countdown in the menu bar title.
+    /// Shows countdown text in the menu bar title.
     var menuBarTimerEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.menuBarTimerEnabled, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.menuBarTimerEnabled) }
     }
 
-    /// Whether muted mode suppresses break overlays and notifications.
+    /// Suppresses overlays and notifications when muted mode is on.
     var mutedModeEnabled: Bool {
         get { bool(forKey: TimingSettingsKeys.mutedModeEnabled, defaultValue: false) }
         set { defaults.set(newValue, forKey: TimingSettingsKeys.mutedModeEnabled) }
     }
 
-    /// Times of day to trigger scheduled breaks.
+    /// Daily schedule times for scheduled breaks.
     var scheduleTimes: [ScheduleTime] {
         get {
             let raw = defaults.stringArray(forKey: TimingSettingsKeys.scheduleTimes) ?? []
@@ -177,7 +177,7 @@ final class TimingSettingsStore {
         set { defaults.set(newValue, forKey: TimingSettingsKeys.presetId) }
     }
 
-    /// Produces the combined timing modes for the current settings.
+    /// Returns the combined timing mode flags from current settings.
     func timingModes() -> TimingModes {
         var modes: TimingModes = []
         if modeIntervalEnabled { modes.insert(.interval) }
@@ -186,20 +186,20 @@ final class TimingSettingsStore {
         return modes
     }
 
-    /// Applies a preset and updates user defaults.
+    /// Applies a preset to interval, break duration, and preset id.
     func applyPreset(_ preset: TimingPreset) {
         intervalMinutes = preset.intervalMinutes
         breakDurationSeconds = preset.breakDurationSeconds
         presetId = preset.id
     }
 
-    /// Reads an integer with a fallback when no value exists.
+    /// Reads an integer with a default fallback.
     private func value(forKey key: String, defaultValue: Int) -> Int {
         if defaults.object(forKey: key) == nil { return defaultValue }
         return defaults.integer(forKey: key)
     }
 
-    /// Reads a boolean with a fallback when no value exists.
+    /// Reads a boolean with a default fallback.
     private func bool(forKey key: String, defaultValue: Bool) -> Bool {
         if defaults.object(forKey: key) == nil { return defaultValue }
         return defaults.bool(forKey: key)

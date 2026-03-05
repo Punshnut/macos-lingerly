@@ -311,6 +311,7 @@ struct BreakOverlayView: View {
     }
 
     @MainActor
+    /// Plays the staged exit animation used when dismissing the overlay.
     private func runExitAnimation() async {
         guard backgroundVisible else { return }
         guard !reduceMotion else {
@@ -418,6 +419,7 @@ private struct FixedWidthDigits: View {
     }
 
     @ViewBuilder
+    /// Applies style-specific digit rendering for classic vs modern overlays.
     private func styledText(_ value: String) -> some View {
         switch overlayStyle {
         case .classic:
@@ -498,7 +500,7 @@ private struct VisualEffectBlurView: NSViewRepresentable {
         return view
     }
 
-    /// No-op: the blur view does not require dynamic updates.
+    /// No runtime updates are required for this blur view.
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
@@ -507,10 +509,12 @@ private struct VisualEffectBlurView: NSViewRepresentable {
 final class BreakOverlayAnimationState: ObservableObject {
     @Published var isExiting = false
 
+    /// Clears any in-progress exit state.
     func reset() {
         isExiting = false
     }
 
+    /// Marks the overlay as exiting to trigger coordinated fade-out animations.
     func startExit() {
         guard !isExiting else { return }
         isExiting = true
