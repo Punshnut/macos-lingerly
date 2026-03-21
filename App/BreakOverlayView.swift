@@ -111,7 +111,6 @@ struct BreakOverlayView: View {
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("\(String(localized: "Overlay Time Left")) \(formattedRemaining(remainingSeconds))")
-                    .animation(reduceMotion ? .none : .easeInOut(duration: 0.6), value: remainingSeconds)
                 }
                 .opacity(showTimer ? 1 : 0)
                 .offset(y: showTimer ? 0 : 10)
@@ -361,20 +360,22 @@ private struct CountdownView: View {
         let secondText = String(format: "%02d", seconds)
 
         HStack(spacing: 0) {
-            FixedWidthDigits(
+            MorphingDigits(
                 text: minuteText,
                 placeholder: "59",
                 font: font,
                 overlayStyle: overlayStyle,
-                alignment: .trailing
+                alignment: .trailing,
+                profiles: [.standard, .standard]
             )
             colonText
-            FixedWidthDigits(
+            MorphingDigits(
                 text: secondText,
                 placeholder: "59",
                 font: font,
                 overlayStyle: overlayStyle,
-                alignment: .leading
+                alignment: .leading,
+                profiles: [.standard, .gentle]
             )
         }
     }
@@ -395,31 +396,216 @@ private struct CountdownView: View {
     }
 }
 
-private struct FixedWidthDigits: View {
+private enum DigitAlignment {
+    case leading
+    case trailing
+}
+
+private enum DigitMorphProfile {
+    case gentle
+    case standard
+}
+
+private struct MorphingDigits: View {
     let text: String
     let placeholder: String
     let font: Font
     let overlayStyle: OverlayStyle
-    let alignment: Alignment
+    let alignment: DigitAlignment
+    let profiles: [DigitMorphProfile]
 
     var body: some View {
-        ZStack(alignment: alignment) {
-            placeholderText
-                .accessibilityHidden(true)
-            valueText
+        HStack(spacing: digitSpacing) {
+            ForEach(Array(slotValues.enumerated()), id: \.offset) { index, value in
+                MorphingDigitSlot(
+                    value: value,
+                    font: font,
+                    overlayStyle: overlayStyle,
+                    profile: profile(for: index)
+                )
+                .accessibilityHidden(value == nil)
+            }
         }
     }
 
-    private var placeholderText: some View {
-        styledText(placeholder).opacity(0)
+    private var slotValues: [Character?] {
+        let characters = Array(text)
+        let count = max(placeholder.count, characters.count)
+        let padding = Array<Character?>(repeating: nil, count: max(count - characters.count, 0))
+
+        switch alignment {
+        case .leading:
+            return characters.map(Optional.some) + padding
+        case .trailing:
+            return padding + characters.map(Optional.some)
+        }
     }
 
-    private var valueText: some View {
-        styledText(text)
+    private func profile(for index: Int) -> DigitMorphProfile {
+        guard profiles.indices.contains(index) else { return .standard }
+        return profiles[index]
+    }
+
+    private var digitSpacing: CGFloat {
+        switch overlayStyle {
+        case .classic:
+            return 0.6
+        case .modernTahoe:
+            return 0
+        }
+    }
+}
+
+private struct MorphingDigitSlot: View {
+    let value: Character?
+    let font: Font
+    let overlayStyle: OverlayStyle
+    let profile: DigitMorphProfile
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var displayedValue: Character?
+    @State private var outgoingValue: Character?
+    @State private var morphProgress: CGFloat = 1
+    @State private var cleanupTask: Task<Void, Never>?
+    private static let cleanupDelay: UInt64 = 520_000_000
+
+    var body: some View {
+        ZStack {
+            styledText("8")
+                .opacity(0)
+                .accessibilityHidden(true)
+
+            // Layer both glyphs briefly so the outgoing number compresses into the incoming one.
+            if let outgoingValue, outgoingValue != displayedValue {
+                styledText(String(outgoingValue))
+                    .opacity(outgoingOpacity)
+                    .scaleEffect(x: outgoingScaleX, y: outgoingScaleY)
+                    .offset(y: outgoingOffsetY)
+                    .blur(radius: outgoingBlur)
+            }
+
+            if let displayedValue {
+                styledText(String(displayedValue))
+                    .opacity(incomingOpacity)
+                    .scaleEffect(x: incomingScaleX, y: incomingScaleY)
+                    .offset(y: incomingOffsetY)
+                    .blur(radius: incomingBlur)
+            }
+        }
+        .compositingGroup()
+        .clipped()
+        .onAppear {
+            displayedValue = value
+            outgoingValue = nil
+            morphProgress = 1
+        }
+        .onChange(of: value) { newValue in
+            animate(to: newValue)
+        }
+        .onDisappear {
+            cleanupTask?.cancel()
+        }
+    }
+
+    private var incomingOpacity: Double {
+        outgoingValue == nil ? 1 : Double(morphProgress)
+    }
+
+    private var outgoingOpacity: Double {
+        Double(max(0, 1 - morphProgress * tuning.outgoingFadeMultiplier))
+    }
+
+    private var incomingScaleX: CGFloat {
+        outgoingValue == nil ? 1 : (tuning.incomingStartScaleX - ((tuning.incomingStartScaleX - 1) * morphProgress))
+    }
+
+    private var incomingScaleY: CGFloat {
+        outgoingValue == nil ? 1 : (tuning.incomingStartScaleY + ((1 - tuning.incomingStartScaleY) * morphProgress))
+    }
+
+    private var outgoingScaleX: CGFloat {
+        1 - (tuning.outgoingScaleXDelta * morphProgress)
+    }
+
+    private var outgoingScaleY: CGFloat {
+        1 + (tuning.outgoingScaleYDelta * morphProgress)
+    }
+
+    private var incomingOffsetY: CGFloat {
+        outgoingValue == nil ? 0 : (tuning.incomingTravelY * (1 - morphProgress))
+    }
+
+    private var outgoingOffsetY: CGFloat {
+        -(tuning.outgoingTravelY * morphProgress)
+    }
+
+    private var incomingBlur: CGFloat {
+        outgoingValue == nil ? 0 : (tuning.incomingMaxBlur * (1 - morphProgress))
+    }
+
+    private var outgoingBlur: CGFloat {
+        tuning.outgoingMaxBlur * morphProgress
+    }
+
+    private var tuning: DigitMorphTuning {
+        switch profile {
+        case .gentle:
+            return DigitMorphTuning(
+                animation: .spring(response: 0.24, dampingFraction: 0.96, blendDuration: 0.08),
+                incomingStartScaleX: 1.05,
+                incomingStartScaleY: 0.95,
+                outgoingScaleXDelta: 0.08,
+                outgoingScaleYDelta: 0.10,
+                incomingTravelY: 2.5,
+                outgoingTravelY: 1.75,
+                incomingMaxBlur: 1.2,
+                outgoingMaxBlur: 1.8,
+                outgoingFadeMultiplier: 0.92
+            )
+        case .standard:
+            return DigitMorphTuning(
+                animation: .spring(response: 0.34, dampingFraction: 0.82, blendDuration: 0.12),
+                incomingStartScaleX: 1.18,
+                incomingStartScaleY: 0.76,
+                outgoingScaleXDelta: 0.26,
+                outgoingScaleYDelta: 0.34,
+                incomingTravelY: 8,
+                outgoingTravelY: 6,
+                incomingMaxBlur: 7,
+                outgoingMaxBlur: 6,
+                outgoingFadeMultiplier: 1.1
+            )
+        }
+    }
+
+    @MainActor
+    private func animate(to newValue: Character?) {
+        cleanupTask?.cancel()
+        guard displayedValue != newValue else { return }
+
+        guard !reduceMotion else {
+            outgoingValue = nil
+            displayedValue = newValue
+            morphProgress = 1
+            return
+        }
+
+        outgoingValue = displayedValue
+        displayedValue = newValue
+        morphProgress = 0
+
+        withAnimation(tuning.animation) {
+            morphProgress = 1
+        }
+
+        cleanupTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: Self.cleanupDelay)
+            guard !Task.isCancelled else { return }
+            outgoingValue = nil
+        }
     }
 
     @ViewBuilder
-    /// Applies style-specific digit rendering for classic vs modern overlays.
     private func styledText(_ value: String) -> some View {
         switch overlayStyle {
         case .classic:
@@ -434,6 +620,19 @@ private struct FixedWidthDigits: View {
                 .monospacedDigit()
         }
     }
+}
+
+private struct DigitMorphTuning {
+    let animation: Animation
+    let incomingStartScaleX: CGFloat
+    let incomingStartScaleY: CGFloat
+    let outgoingScaleXDelta: CGFloat
+    let outgoingScaleYDelta: CGFloat
+    let incomingTravelY: CGFloat
+    let outgoingTravelY: CGFloat
+    let incomingMaxBlur: CGFloat
+    let outgoingMaxBlur: CGFloat
+    let outgoingFadeMultiplier: CGFloat
 }
 
 /// Visual affordance for the "hold to skip" action.
