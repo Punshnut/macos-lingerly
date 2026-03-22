@@ -227,14 +227,15 @@ struct MenuBarPanelView: View {
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
+                    .foregroundStyle(.white)
+                    .background(startButtonBackground)
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(.white.opacity(0.24), lineWidth: 0.8)
+                    )
+                    .contentShape(Capsule(style: .continuous))
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.white)
-            .background(startButtonBackground)
-            .overlay(
-                Capsule(style: .continuous)
-                    .strokeBorder(.white.opacity(0.24), lineWidth: 0.8)
-            )
 
             topActionButton(title: "+1", action: { model.onDeferOneMinute?() }, isEnabled: model.isRunning)
             topActionButton(title: "+5", action: { model.onDeferFiveMinutes?() }, isEnabled: model.isRunning)
@@ -557,34 +558,34 @@ struct MenuBarPanelView: View {
         isSelected: Bool = false
     ) -> some View {
         Button(action: action) {
-            Group {
-                if let title {
-                    Text(title)
-                } else if let symbol {
-                    Image(systemName: symbol)
+            ZStack {
+                Circle()
+                    .fill(
+                        isSelected
+                            ? Color.accentColor.opacity(isEnabled ? 0.82 : 0.38)
+                            : Color.white.opacity(isEnabled ? 0.22 : 0.1)
+                    )
+                Circle()
+                    .strokeBorder(.white.opacity(0.26), lineWidth: 0.7)
+
+                Group {
+                    if let title {
+                        Text(title)
+                    } else if let symbol {
+                        Image(systemName: symbol)
+                    }
                 }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(
+                    isSelected
+                        ? Color.white.opacity(isEnabled ? 1 : 0.55)
+                        : Color.primary.opacity(isEnabled ? 1 : 0.45)
+                )
             }
-            .font(.system(size: 13, weight: .semibold, design: .rounded))
             .frame(width: 38, height: 34)
-            .foregroundStyle(
-                isSelected
-                    ? Color.white.opacity(isEnabled ? 1 : 0.55)
-                    : Color.primary.opacity(isEnabled ? 1 : 0.45)
-            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(
-            Circle()
-                .fill(
-                    isSelected
-                        ? Color.accentColor.opacity(isEnabled ? 0.82 : 0.38)
-                        : Color.white.opacity(isEnabled ? 0.22 : 0.1)
-                )
-        )
-        .overlay(
-            Circle()
-                .strokeBorder(.white.opacity(0.26), lineWidth: 0.7)
-        )
         .disabled(!isEnabled)
     }
 
@@ -639,16 +640,17 @@ struct MenuBarPanelView: View {
             .foregroundStyle(isOn ? Color.primary : Color.primary.opacity(0.88))
             .padding(.horizontal, 8)
             .frame(height: 30)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(isOn ? Color.white.opacity(0.3) : Color.white.opacity(0.12))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+            )
+            .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
-        .background(
-            Capsule(style: .continuous)
-                .fill(isOn ? Color.white.opacity(0.3) : Color.white.opacity(0.12))
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
-        )
     }
 
     /// Renders one selectable smart-pause resume behavior chip.
@@ -663,53 +665,60 @@ struct MenuBarPanelView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 5)
                 .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.82))
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(isSelected ? Color.white.opacity(0.34) : Color.white.opacity(0.15))
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(.white.opacity(0.24), lineWidth: 0.6)
+                )
+                .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
-        .background(
-            Capsule(style: .continuous)
-                .fill(isSelected ? Color.white.opacity(0.34) : Color.white.opacity(0.15))
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .strokeBorder(.white.opacity(0.24), lineWidth: 0.6)
-        )
     }
 
     /// Builds a full-width action button for break/session controls.
     private func actionButton(_ title: String, action: @escaping () -> Void, isEnabled: Bool) -> some View {
-        Button(title, action: action)
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .foregroundStyle(.primary.opacity(isEnabled ? 1 : 0.46))
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(.white.opacity(isEnabled ? 0.21 : 0.1))
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+                )
+                .contentShape(Capsule(style: .continuous))
+        }
             .buttonStyle(.plain)
-            .font(.system(size: 13, weight: .semibold, design: .rounded))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-            .foregroundStyle(.primary.opacity(isEnabled ? 1 : 0.46))
-            .background(
-                Capsule(style: .continuous)
-                    .fill(.white.opacity(isEnabled ? 0.21 : 0.1))
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
-            )
             .disabled(!isEnabled)
     }
 
     /// Builds +/- quick-shift controls for adjusting next break timing.
     private func quickShiftButton(_ title: String, action: @escaping () -> Void, isEnabled: Bool) -> some View {
-        Button(title, action: action)
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .foregroundStyle(.primary.opacity(isEnabled ? 1 : 0.46))
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(.white.opacity(isEnabled ? 0.2 : 0.1))
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+                )
+                .contentShape(Capsule(style: .continuous))
+        }
             .buttonStyle(.plain)
-            .font(.system(size: 12, weight: .semibold, design: .rounded))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 5)
-            .foregroundStyle(.primary.opacity(isEnabled ? 1 : 0.46))
-            .background(
-                Capsule(style: .continuous)
-                    .fill(.white.opacity(isEnabled ? 0.2 : 0.1))
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
-            )
             .disabled(!isEnabled)
     }
 
@@ -746,42 +755,43 @@ struct MenuBarPanelView: View {
     /// Small circular stepper button used inside numeric rows.
     private func miniStepButton(symbol: String, action: @escaping () -> Void, isEnabled: Bool) -> some View {
         Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 9, weight: .bold))
-                .frame(width: 22, height: 22)
-                .contentShape(Circle())
-                .foregroundStyle(.primary.opacity(isEnabled ? 0.94 : 0.36))
+            ZStack {
+                Circle()
+                    .fill(.white.opacity(isEnabled ? 0.2 : 0.11))
+                Circle()
+                    .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+                Image(systemName: symbol)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.primary.opacity(isEnabled ? 0.94 : 0.36))
+            }
+            .frame(width: 22, height: 22)
+            .contentShape(Circle())
         }
         .buttonStyle(.borderless)
-        .background(
-            Circle()
-                .fill(.white.opacity(isEnabled ? 0.2 : 0.11))
-        )
-        .overlay(
-            Circle()
-                .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
-        )
         .disabled(!isEnabled)
     }
 
     /// Selects and applies a built-in timing preset.
     private func presetButton(title: String, presetID: String) -> some View {
-        Button(title) {
+        Button {
             model.selectedPresetID = presetID
             model.onApplyPreset?(presetID)
+        } label: {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(model.selectedPresetID == presetID ? Color.accentColor.opacity(0.24) : Color.white.opacity(0.13))
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+                )
+                .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
-        .font(.system(size: 13, weight: .semibold, design: .rounded))
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 7)
-        .background(
-            Capsule(style: .continuous)
-                .fill(model.selectedPresetID == presetID ? Color.accentColor.opacity(0.24) : Color.white.opacity(0.13))
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
-        )
     }
 
     /// Non-interactive visual tag used for the current custom preset state.
