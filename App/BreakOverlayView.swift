@@ -97,21 +97,12 @@ struct BreakOverlayView: View {
                     .offset(y: showTitle ? 0 : 12)
                     .scaleEffect(showTitle ? 1 : 0.98)
 
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    let remainingSeconds = remainingSeconds(at: context.date)
-                    VStack(spacing: 4) {
-                        Text(String(localized: "Overlay Time Left"))
-                            .font(.headline)
-                            .foregroundStyle(Color.white.opacity(0.72))
-                        CountdownView(
-                            totalSeconds: remainingSeconds,
-                            font: countdownFont,
-                            overlayStyle: overlayStyle
-                        )
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(String(localized: "Overlay Time Left")) \(formattedRemaining(remainingSeconds))")
-                }
+                OverlayCountdownRenderer(
+                    breakDuration: breakDuration,
+                    breakEndDate: breakEndDate,
+                    font: countdownFont,
+                    overlayStyle: overlayStyle
+                )
                 .opacity(showTimer ? 1 : 0)
                 .offset(y: showTimer ? 0 : 10)
                 .scaleEffect(showTimer ? 1 : 0.99)
@@ -223,7 +214,7 @@ struct BreakOverlayView: View {
     }
 
     /// Calculates remaining break seconds at a given timestamp.
-    private func remainingSeconds(at date: Date) -> Int {
+    fileprivate static func remainingSeconds(breakDuration: TimeInterval, breakEndDate: Date, at date: Date) -> Int {
         // 1312 easter egg: freeze 13:12 for one extra second, then continue normally.
         let displayDate: Date
         if breakDuration >= 840 {
@@ -245,7 +236,7 @@ struct BreakOverlayView: View {
     }
 
     /// Formats a seconds count as mm:ss or h:mm:ss.
-    private func formattedRemaining(_ seconds: Int) -> String {
+    fileprivate static func formattedRemaining(_ seconds: Int) -> String {
         let total = max(seconds, 0)
         let hours = total / 3600
         let minutes = (total % 3600) / 60
@@ -344,6 +335,62 @@ struct BreakOverlayView: View {
             }
         }
         _ = await (controlsFade.value, timerFade.value, titleFade.value, contentFade.value, backgroundFade.value)
+    }
+}
+
+private struct OverlayCountdownRenderer: View {
+    let breakDuration: TimeInterval
+    let breakEndDate: Date
+    let font: Font
+    let overlayStyle: OverlayStyle
+
+    @State private var remainingSeconds: Int
+    private let timer = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
+
+    init(breakDuration: TimeInterval, breakEndDate: Date, font: Font, overlayStyle: OverlayStyle) {
+        self.breakDuration = breakDuration
+        self.breakEndDate = breakEndDate
+        self.font = font
+        self.overlayStyle = overlayStyle
+        _remainingSeconds = State(initialValue: BreakOverlayView.remainingSeconds(
+            breakDuration: breakDuration,
+            breakEndDate: breakEndDate,
+            at: Date()
+        ))
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(String(localized: "Overlay Time Left"))
+                .font(.headline)
+                .foregroundStyle(Color.white.opacity(0.72))
+            CountdownView(
+                totalSeconds: remainingSeconds,
+                font: font,
+                overlayStyle: overlayStyle
+            )
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(String(localized: "Overlay Time Left")) \(BreakOverlayView.formattedRemaining(remainingSeconds))")
+        .onAppear {
+            syncRemainingSeconds(for: Date())
+        }
+        .onReceive(timer) { date in
+            syncRemainingSeconds(for: date)
+        }
+        .onChange(of: breakEndDate) { _ in
+            syncRemainingSeconds(for: Date())
+        }
+    }
+
+    private func syncRemainingSeconds(for date: Date) {
+        let nextValue = BreakOverlayView.remainingSeconds(
+            breakDuration: breakDuration,
+            breakEndDate: breakEndDate,
+            at: date
+        )
+        guard nextValue != remainingSeconds else { return }
+        remainingSeconds = nextValue
     }
 }
 
@@ -463,11 +510,12 @@ private struct MorphingDigitSlot: View {
     let profile: DigitMorphProfile
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var displayedValue: Character?
+    @State private var settledValue: Character?
+    @State private var incomingValue: Character?
     @State private var outgoingValue: Character?
     @State private var morphProgress: CGFloat = 1
+    @State private var isTransitioning = false
     @State private var cleanupTask: Task<Void, Never>?
-    private static let cleanupDelay: UInt64 = 520_000_000
 
     var body: some View {
         ZStack {
@@ -475,29 +523,26 @@ private struct MorphingDigitSlot: View {
                 .opacity(0)
                 .accessibilityHidden(true)
 
-            // Layer both glyphs briefly so the outgoing number compresses into the incoming one.
-            if let outgoingValue, outgoingValue != displayedValue {
-                styledText(String(outgoingValue))
-                    .opacity(outgoingOpacity)
-                    .scaleEffect(x: outgoingScaleX, y: outgoingScaleY)
-                    .offset(y: outgoingOffsetY)
-                    .blur(radius: outgoingBlur)
-            }
+            styledText(layerText(for: outgoingValue))
+                .opacity(layerOpacity(for: outgoingValue, amount: outgoingOpacity))
+                .scaleEffect(x: outgoingScaleX, y: outgoingScaleY)
+                .offset(y: outgoingOffsetY)
+                .blur(radius: outgoingBlur)
 
-            if let displayedValue {
-                styledText(String(displayedValue))
-                    .opacity(incomingOpacity)
-                    .scaleEffect(x: incomingScaleX, y: incomingScaleY)
-                    .offset(y: incomingOffsetY)
-                    .blur(radius: incomingBlur)
-            }
+            styledText(layerText(for: activeValue))
+                .opacity(layerOpacity(for: activeValue, amount: incomingOpacity))
+                .scaleEffect(x: incomingScaleX, y: incomingScaleY)
+                .offset(y: incomingOffsetY)
+                .blur(radius: incomingBlur)
         }
         .compositingGroup()
         .clipped()
         .onAppear {
-            displayedValue = value
-            outgoingValue = nil
-            morphProgress = 1
+            settleImmediately(to: value)
+        }
+        .onChange(of: reduceMotion) { isEnabled in
+            guard isEnabled else { return }
+            settleImmediately(to: value)
         }
         .onChange(of: value) { newValue in
             animate(to: newValue)
@@ -507,73 +552,117 @@ private struct MorphingDigitSlot: View {
         }
     }
 
+    private var activeValue: Character? {
+        isTransitioning ? incomingValue : settledValue
+    }
+
     private var incomingOpacity: Double {
-        outgoingValue == nil ? 1 : Double(morphProgress)
+        if !isTransitioning {
+            return activeValue == nil ? 0 : 1
+        }
+        guard activeValue != nil else { return 0 }
+        let reveal = Double(incomingRevealProgress)
+        guard outgoingValue != nil else { return reveal }
+        return max(reveal, Double(tuning.incomingOpacityFloor))
     }
 
     private var outgoingOpacity: Double {
-        Double(max(0, 1 - morphProgress * tuning.outgoingFadeMultiplier))
+        guard isTransitioning, outgoingValue != nil else { return 0 }
+        let fade = Double(1 - outgoingFadeProgress)
+        guard incomingValue != nil else { return fade }
+        let hold = Double(tuning.outgoingOpacityFloor * (1 - shapeProgress))
+        return max(fade, hold)
     }
 
     private var incomingScaleX: CGFloat {
-        outgoingValue == nil ? 1 : (tuning.incomingStartScaleX - ((tuning.incomingStartScaleX - 1) * morphProgress))
+        guard isTransitioning else { return 1 }
+        return lerp(tuning.incomingStartScaleX, 1, shapeProgress)
     }
 
     private var incomingScaleY: CGFloat {
-        outgoingValue == nil ? 1 : (tuning.incomingStartScaleY + ((1 - tuning.incomingStartScaleY) * morphProgress))
+        guard isTransitioning else { return 1 }
+        return lerp(tuning.incomingStartScaleY, 1, shapeProgress)
     }
 
     private var outgoingScaleX: CGFloat {
-        1 - (tuning.outgoingScaleXDelta * morphProgress)
+        guard isTransitioning else { return 1 }
+        return lerp(1, tuning.outgoingEndScaleX, shapeProgress)
     }
 
     private var outgoingScaleY: CGFloat {
-        1 + (tuning.outgoingScaleYDelta * morphProgress)
+        guard isTransitioning else { return 1 }
+        return lerp(1, tuning.outgoingEndScaleY, shapeProgress)
     }
 
     private var incomingOffsetY: CGFloat {
-        outgoingValue == nil ? 0 : (tuning.incomingTravelY * (1 - morphProgress))
+        guard isTransitioning else { return 0 }
+        return tuning.incomingTravelY * (1 - shapeProgress)
     }
 
     private var outgoingOffsetY: CGFloat {
-        -(tuning.outgoingTravelY * morphProgress)
+        guard isTransitioning else { return 0 }
+        return -(tuning.outgoingTravelY * shapeProgress)
     }
 
     private var incomingBlur: CGFloat {
-        outgoingValue == nil ? 0 : (tuning.incomingMaxBlur * (1 - morphProgress))
+        guard isTransitioning, activeValue != nil else { return 0 }
+        return tuning.incomingMaxBlur * (1 - shapeProgress)
     }
 
     private var outgoingBlur: CGFloat {
-        tuning.outgoingMaxBlur * morphProgress
+        guard isTransitioning, outgoingValue != nil else { return 0 }
+        return tuning.outgoingMaxBlur * shapeProgress
+    }
+
+    private var shapeProgress: CGFloat {
+        eased(morphProgress)
+    }
+
+    private var incomingRevealProgress: CGFloat {
+        eased(remap(morphProgress, start: tuning.incomingRevealStart, end: 1))
+    }
+
+    private var outgoingFadeProgress: CGFloat {
+        eased(remap(morphProgress, start: tuning.outgoingFadeStart, end: tuning.outgoingFadeEnd))
     }
 
     private var tuning: DigitMorphTuning {
         switch profile {
         case .gentle:
             return DigitMorphTuning(
-                animation: .spring(response: 0.24, dampingFraction: 0.96, blendDuration: 0.08),
-                incomingStartScaleX: 1.05,
-                incomingStartScaleY: 0.95,
-                outgoingScaleXDelta: 0.08,
-                outgoingScaleYDelta: 0.10,
-                incomingTravelY: 2.5,
-                outgoingTravelY: 1.75,
-                incomingMaxBlur: 1.2,
-                outgoingMaxBlur: 1.8,
-                outgoingFadeMultiplier: 0.92
+                animation: .timingCurve(0.18, 0.82, 0.22, 1, duration: 0.36),
+                settleDelay: 500_000_000,
+                incomingStartScaleX: 1.035,
+                incomingStartScaleY: 0.975,
+                outgoingEndScaleX: 0.97,
+                outgoingEndScaleY: 1.035,
+                incomingTravelY: 1.4,
+                outgoingTravelY: 1.2,
+                incomingMaxBlur: 0.18,
+                outgoingMaxBlur: 0.22,
+                incomingOpacityFloor: 0.12,
+                outgoingOpacityFloor: 0.2,
+                incomingRevealStart: 0.14,
+                outgoingFadeStart: 0.08,
+                outgoingFadeEnd: 0.74
             )
         case .standard:
             return DigitMorphTuning(
-                animation: .spring(response: 0.34, dampingFraction: 0.82, blendDuration: 0.12),
-                incomingStartScaleX: 1.18,
-                incomingStartScaleY: 0.76,
-                outgoingScaleXDelta: 0.26,
-                outgoingScaleYDelta: 0.34,
-                incomingTravelY: 8,
-                outgoingTravelY: 6,
-                incomingMaxBlur: 7,
-                outgoingMaxBlur: 6,
-                outgoingFadeMultiplier: 1.1
+                animation: .timingCurve(0.16, 0.84, 0.24, 1, duration: 0.42),
+                settleDelay: 560_000_000,
+                incomingStartScaleX: 1.075,
+                incomingStartScaleY: 0.94,
+                outgoingEndScaleX: 0.9,
+                outgoingEndScaleY: 1.08,
+                incomingTravelY: 3.6,
+                outgoingTravelY: 2.9,
+                incomingMaxBlur: 0.45,
+                outgoingMaxBlur: 0.55,
+                incomingOpacityFloor: 0.1,
+                outgoingOpacityFloor: 0.22,
+                incomingRevealStart: 0.18,
+                outgoingFadeStart: 0.1,
+                outgoingFadeEnd: 0.8
             )
         }
     }
@@ -581,28 +670,73 @@ private struct MorphingDigitSlot: View {
     @MainActor
     private func animate(to newValue: Character?) {
         cleanupTask?.cancel()
-        guard displayedValue != newValue else { return }
+        let currentTarget = activeValue
+        guard currentTarget != newValue else { return }
 
         guard !reduceMotion else {
-            outgoingValue = nil
-            displayedValue = newValue
-            morphProgress = 1
+            settleImmediately(to: newValue)
             return
         }
 
-        outgoingValue = displayedValue
-        displayedValue = newValue
+        outgoingValue = currentTarget
+        incomingValue = newValue
+        isTransitioning = true
         morphProgress = 0
 
         withAnimation(tuning.animation) {
             morphProgress = 1
         }
 
+        let finalValue = newValue
         cleanupTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: Self.cleanupDelay)
+            try? await Task.sleep(nanoseconds: tuning.settleDelay)
             guard !Task.isCancelled else { return }
-            outgoingValue = nil
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                settledValue = finalValue
+                incomingValue = finalValue
+                outgoingValue = nil
+                morphProgress = 1
+                isTransitioning = false
+            }
         }
+    }
+
+    @MainActor
+    private func settleImmediately(to newValue: Character?) {
+        cleanupTask?.cancel()
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            settledValue = newValue
+            incomingValue = newValue
+            outgoingValue = nil
+            morphProgress = 1
+            isTransitioning = false
+        }
+    }
+
+    private func layerText(for value: Character?) -> String {
+        value.map(String.init) ?? "8"
+    }
+
+    private func layerOpacity(for value: Character?, amount: Double) -> Double {
+        guard value != nil else { return 0 }
+        return amount
+    }
+
+    private func remap(_ value: CGFloat, start: CGFloat, end: CGFloat) -> CGFloat {
+        guard end > start else { return value >= end ? 1 : 0 }
+        return min(max((value - start) / (end - start), 0), 1)
+    }
+
+    private func eased(_ value: CGFloat) -> CGFloat {
+        value * value * (3 - (2 * value))
+    }
+
+    private func lerp(_ start: CGFloat, _ end: CGFloat, _ amount: CGFloat) -> CGFloat {
+        start + ((end - start) * amount)
     }
 
     @ViewBuilder
@@ -624,15 +758,20 @@ private struct MorphingDigitSlot: View {
 
 private struct DigitMorphTuning {
     let animation: Animation
+    let settleDelay: UInt64
     let incomingStartScaleX: CGFloat
     let incomingStartScaleY: CGFloat
-    let outgoingScaleXDelta: CGFloat
-    let outgoingScaleYDelta: CGFloat
+    let outgoingEndScaleX: CGFloat
+    let outgoingEndScaleY: CGFloat
     let incomingTravelY: CGFloat
     let outgoingTravelY: CGFloat
     let incomingMaxBlur: CGFloat
     let outgoingMaxBlur: CGFloat
-    let outgoingFadeMultiplier: CGFloat
+    let incomingOpacityFloor: CGFloat
+    let outgoingOpacityFloor: CGFloat
+    let incomingRevealStart: CGFloat
+    let outgoingFadeStart: CGFloat
+    let outgoingFadeEnd: CGFloat
 }
 
 /// Visual affordance for the "hold to skip" action.
