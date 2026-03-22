@@ -270,8 +270,13 @@ final class AppStateController {
     func resumeTimer() {
         guard isRunning else { return }
         isManuallyPaused = false
-        cancelSmartPauseCooldown()
         refreshSmartPauseScheduleSource()
+        if canResumeImmediatelyFromSmartPauseCooldown {
+            resumeImmediatelyFromSmartPauseCooldown()
+            onStateChange?(state)
+            return
+        }
+        cancelSmartPauseCooldown()
         applySmartPauseState()
         if !isSmartPaused {
             engine.resume(resetCounters: false)
@@ -730,6 +735,21 @@ final class AppStateController {
         smartPauseCooldownTimer?.invalidate()
         smartPauseCooldownTimer = nil
         smartPauseCooldownEndDate = nil
+    }
+
+    /// Returns true when a manual resume should bypass an already-started cooldown.
+    private var canResumeImmediatelyFromSmartPauseCooldown: Bool {
+        guard smartPauseCooldownTimer != nil else { return false }
+        return !isMediaConditionActive && !isAppConditionActive && !isScheduleConditionActive
+    }
+
+    /// Resumes the existing timer immediately instead of starting a fresh cooldown.
+    private func resumeImmediatelyFromSmartPauseCooldown() {
+        cancelSmartPauseCooldown()
+        guard isRunning, state == .running, isSmartPaused, !isManuallyPaused else { return }
+        engine.resume(resetCounters: false)
+        isSmartPaused = false
+        smartPauseStartedAt = nil
     }
 
     /// Resumes from smart pause using the configured resume behavior.
