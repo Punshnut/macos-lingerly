@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menuUpdateTimer: DispatchSourceTimer?
     private var hotkeyManager: GlobalHotkeyManager?
     private var defaultsObserver: NSObjectProtocol?
+    private let settingsMenuShortcut = ","
     
     var isUpdaterAvailable: Bool {
         updaterController != nil
@@ -107,9 +108,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let settingsItem = NSMenuItem(
             title: String(localized: "Settings..."),
             action: #selector(openSettings(_:)),
-            keyEquivalent: ""
+            keyEquivalent: settingsMenuShortcut
         )
-        settingsItem.keyEquivalentModifierMask = []
+        settingsItem.keyEquivalentModifierMask = [.command]
         settingsItem.target = self
         let settingsImage = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
         settingsImage?.isTemplate = true
@@ -154,16 +155,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(quitItem)
         self.quitItem = quitItem
 
+        applyFooterKeyEquivalents()
         menu.delegate = self
         statusItem.menu = menu
         self.statusItem = statusItem
         applyMenuBarStatusWidth()
     }
 
-    /// Removes default keyboard equivalents from footer-only menu actions.
-    private func clearFooterKeyEquivalents() {
-        settingsItem?.keyEquivalent = ""
-        settingsItem?.keyEquivalentModifierMask = []
+    /// Applies the native Settings shortcut while leaving the other footer items unassigned.
+    private func applyFooterKeyEquivalents() {
+        settingsItem?.keyEquivalent = settingsMenuShortcut
+        settingsItem?.keyEquivalentModifierMask = [.command]
         checkForUpdatesItem?.keyEquivalent = ""
         checkForUpdatesItem?.keyEquivalentModifierMask = []
         aboutItem?.keyEquivalent = ""
@@ -543,7 +545,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Refreshes state and starts per-second updates while the menu is open.
     func menuWillOpen(_ menu: NSMenu) {
-        clearFooterKeyEquivalents()
+        applyFooterKeyEquivalents()
         updateCountdownTitle()
         startMenuUpdateTimer()
     }
