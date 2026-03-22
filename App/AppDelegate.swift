@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     }()
     let appState = AppStateController()
+    let settingsNavigationState = SettingsNavigationState()
     private var settingsItem: NSMenuItem?
     private var checkForUpdatesItem: NSMenuItem?
     private var aboutItem: NSMenuItem?
@@ -190,7 +191,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Opens the settings window from the status menu.
     @objc private func openSettings(_ sender: Any?) {
-        showSettingsWindow()
+        showSettingsWindow(selecting: .general)
     }
 
     /// Opens Sparkle's update check window.
@@ -198,16 +199,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updaterController?.checkForUpdates(sender)
     }
 
-    /// Opens the standard macOS About panel and brings the app to front.
+    /// Opens the settings window focused on the About tab.
     @objc private func openAbout(_ sender: Any?) {
-        NSApp.orderFrontStandardAboutPanel(sender)
-        NSApp.activate(ignoringOtherApps: true)
+        showSettingsWindow(selecting: .about)
     }
 
     /// Creates (if needed) and brings forward the settings window.
-    private func showSettingsWindow() {
+    private func showSettingsWindow(selecting selection: SettingsSidebarItem = .general) {
+        settingsNavigationState.selection = selection
+
         if settingsWindow == nil {
-            let hostingView = NSHostingView(rootView: SettingsView(appState: appState))
+            let hostingView = NSHostingView(
+                rootView: SettingsView(appState: appState, navigationState: settingsNavigationState)
+            )
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 360, height: 360),
                 styleMask: [.titled, .closable, .miniaturizable],
@@ -371,7 +375,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.updateCountdownTitle()
         }
         controlPanelViewModel.onOpenSettings = { [weak self] in
-            self?.showSettingsWindow()
+            self?.showSettingsWindow(selecting: .general)
         }
     }
 

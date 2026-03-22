@@ -8,7 +8,10 @@ struct LingerlyApp: App {
     /// Exposes the Settings scene used for the menu bar app.
     var body: some Scene {
         Settings {
-            SettingsView(appState: appDelegate.appState)
+            SettingsView(
+                appState: appDelegate.appState,
+                navigationState: appDelegate.settingsNavigationState
+            )
         }
     }
 }

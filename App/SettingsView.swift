@@ -10,12 +10,20 @@ private func l(_ key: String) -> String {
 /// SwiftUI form for configuring timing and enforcement settings.
 struct SettingsView: View {
     let appState: AppStateController
-    @State private var selection: SettingsSidebarItem? = .general
+    @ObservedObject var navigationState: SettingsNavigationState
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
+        let selection = Binding<SettingsSidebarItem?>(
+            get: { navigationState.selection },
+            set: { newValue in
+                guard let newValue else { return }
+                navigationState.selection = newValue
+            }
+        )
+
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            List(selection: $selection) {
+            List(selection: selection) {
                 Section(l("settings.sidebar.section.basics")) {
                     sidebarRow(.general)
                     sidebarRow(.breakSchedule)
@@ -44,11 +52,11 @@ struct SettingsView: View {
             .listStyle(.sidebar)
             .frame(minWidth: 210)
         } detail: {
-            SettingsDetailView(selection: selection ?? .general, appState: appState)
+            SettingsDetailView(selection: navigationState.selection, appState: appState)
         }
         .frame(minWidth: 900, minHeight: 580)
         .applySettingsToolbar()
-        .background(SettingsWindowToolbarHider(selection: selection))
+        .background(SettingsWindowToolbarHider(selection: navigationState.selection))
         .onChange(of: columnVisibility) { newValue in
             if newValue != .all {
                 columnVisibility = .all
@@ -174,7 +182,15 @@ private struct SettingsWindowToolbarHider: NSViewRepresentable {
     }
 }
 
-private enum SettingsSidebarItem: String, CaseIterable, Hashable {
+final class SettingsNavigationState: ObservableObject {
+    @Published var selection: SettingsSidebarItem
+
+    init(selection: SettingsSidebarItem = .general) {
+        self.selection = selection
+    }
+}
+
+enum SettingsSidebarItem: String, CaseIterable, Hashable {
     case general
     case breakSchedule
     case smartPause
