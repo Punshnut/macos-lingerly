@@ -511,7 +511,6 @@ private struct MorphingDigitSlot: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var settledValue: Character?
-    @State private var incomingValue: Character?
     @State private var outgoingValue: Character?
     @State private var morphProgress: CGFloat = 1
     @State private var isTransitioning = false
@@ -529,8 +528,8 @@ private struct MorphingDigitSlot: View {
                 .offset(y: outgoingOffsetY)
                 .blur(radius: outgoingBlur)
 
-            styledText(layerText(for: activeValue))
-                .opacity(layerOpacity(for: activeValue, amount: incomingOpacity))
+            styledText(layerText(for: settledValue))
+                .opacity(layerOpacity(for: settledValue, amount: incomingOpacity))
                 .scaleEffect(x: incomingScaleX, y: incomingScaleY)
                 .offset(y: incomingOffsetY)
                 .blur(radius: incomingBlur)
@@ -552,15 +551,11 @@ private struct MorphingDigitSlot: View {
         }
     }
 
-    private var activeValue: Character? {
-        isTransitioning ? incomingValue : settledValue
-    }
-
     private var incomingOpacity: Double {
         if !isTransitioning {
-            return activeValue == nil ? 0 : 1
+            return settledValue == nil ? 0 : 1
         }
-        guard activeValue != nil else { return 0 }
+        guard settledValue != nil else { return 0 }
         let reveal = Double(incomingRevealProgress)
         guard outgoingValue != nil else { return reveal }
         return max(reveal, Double(tuning.incomingOpacityFloor))
@@ -569,7 +564,7 @@ private struct MorphingDigitSlot: View {
     private var outgoingOpacity: Double {
         guard isTransitioning, outgoingValue != nil else { return 0 }
         let fade = Double(1 - outgoingFadeProgress)
-        guard incomingValue != nil else { return fade }
+        guard settledValue != nil else { return fade }
         let hold = Double(tuning.outgoingOpacityFloor * (1 - shapeProgress))
         return max(fade, hold)
     }
@@ -605,7 +600,7 @@ private struct MorphingDigitSlot: View {
     }
 
     private var incomingBlur: CGFloat {
-        guard isTransitioning, activeValue != nil else { return 0 }
+        guard isTransitioning, settledValue != nil else { return 0 }
         return tuning.incomingMaxBlur * (1 - shapeProgress)
     }
 
@@ -670,16 +665,16 @@ private struct MorphingDigitSlot: View {
     @MainActor
     private func animate(to newValue: Character?) {
         cleanupTask?.cancel()
-        let currentTarget = activeValue
-        guard currentTarget != newValue else { return }
+        let currentValue = settledValue
+        guard currentValue != newValue else { return }
 
         guard !reduceMotion else {
             settleImmediately(to: newValue)
             return
         }
 
-        outgoingValue = currentTarget
-        incomingValue = newValue
+        outgoingValue = currentValue
+        settledValue = newValue
         isTransitioning = true
         morphProgress = 0
 
@@ -687,15 +682,12 @@ private struct MorphingDigitSlot: View {
             morphProgress = 1
         }
 
-        let finalValue = newValue
         cleanupTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: tuning.settleDelay)
             guard !Task.isCancelled else { return }
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction) {
-                settledValue = finalValue
-                incomingValue = finalValue
                 outgoingValue = nil
                 morphProgress = 1
                 isTransitioning = false
@@ -710,7 +702,6 @@ private struct MorphingDigitSlot: View {
         transaction.disablesAnimations = true
         withTransaction(transaction) {
             settledValue = newValue
-            incomingValue = newValue
             outgoingValue = nil
             morphProgress = 1
             isTransitioning = false
