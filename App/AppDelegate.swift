@@ -71,6 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var hotkeyManager: GlobalHotkeyManager?
     private var defaultsObserver: NSObjectProtocol?
     private let settingsMenuShortcut = ","
+    private let quitMenuShortcut = "q"
     
     var isUpdaterAvailable: Bool {
         updaterController != nil
@@ -190,9 +191,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let quitItem = NSMenuItem(
             title: String(localized: "Quit Lingerly"),
             action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: ""
+            keyEquivalent: quitMenuShortcut
         )
-        quitItem.keyEquivalentModifierMask = []
+        quitItem.keyEquivalentModifierMask = [.command]
         quitItem.target = NSApp
         menu.addItem(quitItem)
         self.quitItem = quitItem
@@ -204,7 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         applyMenuBarStatusWidth()
     }
 
-    /// Applies the native Settings shortcut while leaving the other footer items unassigned.
+    /// Keeps footer keyboard equivalents in sync with the status menu items.
     private func applyFooterKeyEquivalents() {
         settingsItem?.keyEquivalent = settingsMenuShortcut
         settingsItem?.keyEquivalentModifierMask = [.command]
@@ -212,8 +213,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         checkForUpdatesItem?.keyEquivalentModifierMask = []
         aboutItem?.keyEquivalent = ""
         aboutItem?.keyEquivalentModifierMask = []
-        quitItem?.keyEquivalent = ""
-        quitItem?.keyEquivalentModifierMask = []
+        quitItem?.keyEquivalent = quitMenuShortcut
+        quitItem?.keyEquivalentModifierMask = [.command]
     }
 
     /// Syncs menu bar icon and menu enablement with app state.
