@@ -84,6 +84,7 @@ final class MenuBarPanelViewModel: ObservableObject {
     @Published var launchAtLoginEnabled = false
     @Published var smartPauseCooldownMinutes = 1
     @Published var smartPauseResumeBehavior: SmartPauseResumeBehavior = .resumeTimer
+    @Published var isPanelVisible = false
 
     var onToggleStartStop: (() -> Void)?
     var onDeferOneMinute: (() -> Void)?
@@ -164,13 +165,22 @@ struct MenuBarPanelView: View {
         .frame(width: Self.panelWidth, height: Self.panelHeight, alignment: .top)
         .background(panelBackdrop)
         .onAppear {
-            startAmbientAnimations()
+            if model.isPanelVisible {
+                startAmbientAnimations()
+            }
         }
         .onChange(of: model.statusKind) { _ in
-            statusPulse = false
-            if shouldPulseStatus {
-                statusPulse = true
+            restartStatusPulseIfNeeded()
+        }
+        .onChange(of: model.isPanelVisible) { isVisible in
+            if isVisible {
+                startAmbientAnimations()
+            } else {
+                stopAmbientAnimations()
             }
+        }
+        .onDisappear {
+            stopAmbientAnimations()
         }
     }
 
@@ -499,7 +509,12 @@ struct MenuBarPanelView: View {
                         .frame(width: 26, height: 26)
                         .scaleEffect(statusPulse ? 1.22 : 0.8)
                         .opacity(statusPulse ? 0 : 0.7)
-                        .animation(.easeOut(duration: 1.5).repeatForever(autoreverses: false), value: statusPulse)
+                        .animation(
+                            model.isPanelVisible
+                                ? .easeOut(duration: 1.5).repeatForever(autoreverses: false)
+                                : .none,
+                            value: statusPulse
+                        )
                 }
 
                 Image(systemName: model.statusKind.symbol)
@@ -537,16 +552,38 @@ struct MenuBarPanelView: View {
 
     /// Starts long-running background animations once on initial appearance.
     private func startAmbientAnimations() {
-        guard auroraDrift == false else { return }
+        guard model.isPanelVisible else { return }
+        guard auroraDrift == false, shimmerTravel == false else { return }
         withAnimation(.easeInOut(duration: 10).repeatForever(autoreverses: true)) {
             auroraDrift = true
         }
         withAnimation(.linear(duration: 2.8).repeatForever(autoreverses: false)) {
             shimmerTravel = true
         }
-        if shouldPulseStatus {
-            statusPulse = true
+        restartStatusPulseIfNeeded()
+    }
+
+    /// Stops infinite animations while the menu is hidden.
+    private func stopAmbientAnimations() {
+        var transaction = Transaction()
+        transaction.animation = nil
+        withTransaction(transaction) {
+            auroraDrift = false
+            shimmerTravel = false
+            statusPulse = false
         }
+    }
+
+    /// Restarts the visible status pulse after state or visibility changes.
+    private func restartStatusPulseIfNeeded() {
+        var transaction = Transaction()
+        transaction.animation = nil
+        withTransaction(transaction) {
+            statusPulse = false
+        }
+
+        guard model.isPanelVisible, shouldPulseStatus else { return }
+        statusPulse = true
     }
 
     /// Builds the compact circular action buttons used in the top control row.

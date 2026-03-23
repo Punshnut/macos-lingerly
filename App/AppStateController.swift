@@ -183,6 +183,8 @@ final class AppStateController {
                 self?.handleRunningAppsChange(runningBundleIDs: runningBundleIDs)
             }
         }
+
+        refreshSmartPauseMonitoring()
     }
 
     @MainActor deinit {
@@ -218,6 +220,7 @@ final class AppStateController {
         overlayController.hide()
         isSmartPaused = false
         smartPauseStartedAt = nil
+        refreshSmartPauseMonitoring()
         onStateChange?(state)
     }
 
@@ -263,6 +266,7 @@ final class AppStateController {
         stopSmartPauseScheduleTimer()
         isManuallyPaused = true
         engine.pause()
+        refreshSmartPauseMonitoring()
         onStateChange?(state)
     }
 
@@ -270,7 +274,7 @@ final class AppStateController {
     func resumeTimer() {
         guard isRunning else { return }
         isManuallyPaused = false
-        refreshSmartPauseScheduleSource()
+        refreshSmartPauseMonitoring()
         if canResumeImmediatelyFromSmartPauseCooldown {
             resumeImmediatelyFromSmartPauseCooldown()
             onStateChange?(state)
@@ -324,6 +328,7 @@ final class AppStateController {
             }
             overlayController.hide()
             engine.pause()
+            refreshSmartPauseMonitoring()
         }
         snoozeTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(durationMinutes * 60), repeats: false) { [weak self] _ in
             Task { @MainActor in
@@ -429,6 +434,7 @@ final class AppStateController {
 
     /// Runs side effects when the engine state changes.
     private func handleStateTransition() {
+        refreshSmartPauseMonitoring()
         switch state {
         case .idle, .running, .breakDue:
             overlayVisibilityValidationTask?.cancel()
@@ -532,13 +538,7 @@ final class AppStateController {
 
     /// Re-evaluates all smart-pause sources from current runtime state.
     private func refreshSmartPause() {
-        isMediaConditionActive = settingsStore.mediaPauseEnabled && mediaPlaybackMonitor.isPlaying
-        isAppConditionActive = appConditionIsActive(
-            runningBundleIDs: runningAppsMonitor.runningBundleIdentifiers,
-            pauseForAppsEnabled: settingsStore.pauseForAppsEnabled,
-            pauseForAppsRules: settingsStore.pauseForAppsRules
-        )
-        refreshSmartPauseScheduleSource()
+        refreshSmartPauseMonitoring()
         applySmartPauseState()
     }
 
@@ -573,21 +573,43 @@ final class AppStateController {
         )
         let shouldBypassCooldown = mediaSourceDisabledWhileActive || appSourceDisabledWhileActive || scheduleSourceDisabledWhileActive
 
-        isMediaConditionActive = newMediaPauseEnabled && mediaPlaybackMonitor.isPlaying
-        isAppConditionActive = appConditionIsActive(
-            runningBundleIDs: runningBundleIDs,
-            pauseForAppsEnabled: newPauseForAppsEnabled,
-            pauseForAppsRules: newPauseForAppsRules
-        )
-        isScheduleConditionActive = newSchedulePauseEnabled && smartPauseTriggeredBySchedule(at: Date(), periods: newSchedulePausePeriods)
-
         lastMediaPauseEnabled = newMediaPauseEnabled
         lastPauseForAppsEnabled = newPauseForAppsEnabled
         lastPauseForAppsRules = newPauseForAppsRules
         lastSchedulePauseEnabled = newSchedulePauseEnabled
-        restartSmartPauseScheduleTimerIfNeeded()
+        refreshSmartPauseMonitoring()
 
         applySmartPauseState(bypassCooldownIfConditionsCleared: shouldBypassCooldown)
+    }
+
+    /// Enables smart-pause monitors only while they can affect the current runtime state.
+    private func refreshSmartPauseMonitoring(at date: Date = Date()) {
+        let shouldObserveMedia = shouldObserveSmartPauseSources && settingsStore.mediaPauseEnabled
+        mediaPlaybackMonitor.setMonitoringEnabled(shouldObserveMedia)
+        isMediaConditionActive = shouldObserveMedia && mediaPlaybackMonitor.isPlaying
+
+        let shouldObserveApps = shouldObserveSmartPauseSources
+            && settingsStore.pauseForAppsEnabled
+            && !settingsStore.pauseForAppsRules.isEmpty
+        runningAppsMonitor.setMonitoringEnabled(shouldObserveApps)
+        isAppConditionActive = shouldObserveApps && appConditionIsActive(
+            runningBundleIDs: runningAppsMonitor.runningBundleIdentifiers,
+            pauseForAppsEnabled: settingsStore.pauseForAppsEnabled,
+            pauseForAppsRules: settingsStore.pauseForAppsRules
+        )
+
+        if shouldObserveSmartPauseSources {
+            refreshSmartPauseScheduleSource(at: date)
+        } else {
+            stopSmartPauseScheduleTimer()
+            isScheduleConditionActive = false
+            lastSchedulePauseEnabled = settingsStore.smartPauseScheduleEnabled
+        }
+    }
+
+    /// True when smart-pause sources can currently influence timing.
+    private var shouldObserveSmartPauseSources: Bool {
+        isRunning && state == .running && !isManuallyPaused && snoozeEndDate == nil
     }
 
     /// Pauses/resumes the engine according to current smart-pause sources.
@@ -599,6 +621,7 @@ final class AppStateController {
             engine.pause()
             isSmartPaused = true
             smartPauseStartedAt = Date()
+            onStateChange?(state)
             return
         }
 
@@ -622,6 +645,7 @@ final class AppStateController {
                 self?.resumeFromSmartPauseAfterCooldown()
             }
         }
+        onStateChange?(state)
     }
 
     /// Returns true when any configured tracked app is currently running.
@@ -676,14 +700,22 @@ final class AppStateController {
     /// Starts periodic schedule reevaluation while schedule-based pause is enabled.
     private func restartSmartPauseScheduleTimerIfNeeded() {
         stopSmartPauseScheduleTimer()
-        guard isRunning, settingsStore.smartPauseScheduleEnabled, !settingsStore.smartPauseSchedulePeriods.isEmpty else { return }
-        smartPauseScheduleTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        let periods = settingsStore.smartPauseSchedulePeriods
+        guard isRunning, settingsStore.smartPauseScheduleEnabled, !periods.isEmpty else { return }
+        guard let nextBoundary = nextSmartPauseScheduleBoundary(after: Date(), periods: periods) else { return }
+
+        let interval = max(nextBoundary.timeIntervalSinceNow, 1)
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
-                self.refreshSmartPauseScheduleSource()
+                let now = Date()
+                self.refreshSmartPauseScheduleSource(at: now)
                 self.applySmartPauseState()
+                self.restartSmartPauseScheduleTimerIfNeeded()
             }
         }
+        timer.tolerance = min(max(interval * 0.1, 1), 15)
+        smartPauseScheduleTimer = timer
     }
 
     /// Stops periodic schedule reevaluation.
@@ -750,18 +782,98 @@ final class AppStateController {
         engine.resume(resetCounters: false)
         isSmartPaused = false
         smartPauseStartedAt = nil
+        onStateChange?(state)
     }
 
     /// Resumes from smart pause using the configured resume behavior.
     private func resumeFromSmartPauseAfterCooldown() {
         cancelSmartPauseCooldown()
         guard isRunning, state == .running, isSmartPaused, !isManuallyPaused else { return }
-        guard !isMediaConditionActive, !isAppConditionActive else { return }
+        guard !isMediaConditionActive, !isAppConditionActive, !isScheduleConditionActive else { return }
 
         let behavior = settingsStore.smartPauseResumeBehavior
         engine.resume(resetCounters: behavior == .resetTimer)
         isSmartPaused = false
         smartPauseStartedAt = nil
+        onStateChange?(state)
+    }
+
+    /// Returns the next schedule boundary that can change the smart-pause result.
+    private func nextSmartPauseScheduleBoundary(
+        after date: Date,
+        periods: [SmartPauseSchedulePeriod],
+        calendar: Calendar = .current
+    ) -> Date? {
+        guard !periods.isEmpty else { return nil }
+
+        let startOfDay = calendar.startOfDay(for: date)
+        var nextBoundary: Date?
+
+        for dayOffset in 0...7 {
+            guard
+                let day = calendar.date(byAdding: .day, value: dayOffset, to: startOfDay),
+                let followingDay = calendar.date(byAdding: .day, value: 1, to: day)
+            else {
+                continue
+            }
+
+            let weekday = calendar.component(.weekday, from: day)
+
+            for period in periods where !period.weekdays.isEmpty && period.weekdays.contains(weekday) {
+                if let startBoundary = boundaryDate(forMinute: period.startMinute, on: day, calendar: calendar) {
+                    nextBoundary = earlierBoundary(after: date, candidate: startBoundary, current: nextBoundary)
+                }
+
+                if let endBoundary = schedulePeriodEndBoundary(
+                    for: period,
+                    startDay: day,
+                    followingDay: followingDay,
+                    calendar: calendar
+                ) {
+                    nextBoundary = earlierBoundary(after: date, candidate: endBoundary, current: nextBoundary)
+                }
+            }
+        }
+
+        return nextBoundary
+    }
+
+    /// Chooses the earlier future boundary when several candidates exist.
+    private func earlierBoundary(after referenceDate: Date, candidate: Date, current: Date?) -> Date? {
+        guard candidate > referenceDate else { return current }
+        guard let current else { return candidate }
+        return min(current, candidate)
+    }
+
+    /// Builds a boundary Date from a minute-of-day on a specific day.
+    private func boundaryDate(
+        forMinute minuteOfDay: Int,
+        on day: Date,
+        calendar: Calendar
+    ) -> Date? {
+        var components = calendar.dateComponents([.year, .month, .day], from: day)
+        components.hour = minuteOfDay / 60
+        components.minute = minuteOfDay % 60
+        components.second = 0
+        return calendar.date(from: components)
+    }
+
+    /// Returns the timestamp when a schedule period stops applying for the given start day.
+    private func schedulePeriodEndBoundary(
+        for period: SmartPauseSchedulePeriod,
+        startDay: Date,
+        followingDay: Date,
+        calendar: Calendar
+    ) -> Date? {
+        if period.startMinute == period.endMinute {
+            return calendar.startOfDay(for: followingDay)
+        }
+
+        if period.startMinute < period.endMinute {
+            return boundaryDate(forMinute: period.endMinute, on: startDay, calendar: calendar)
+        }
+
+        return boundaryDate(forMinute: period.endMinute, on: followingDay, calendar: calendar)
     }
 
     /// Returns remaining smart-pause cooldown seconds, if cooldown is active.

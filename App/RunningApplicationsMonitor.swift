@@ -5,9 +5,31 @@ final class RunningApplicationsMonitor {
     var onChange: ((Set<String>) -> Void)?
 
     private(set) var runningBundleIdentifiers: Set<String> = []
+    private var monitoringEnabled = false
 
-    /// Subscribes to app launch/termination events and performs initial scan.
+    /// Creates the monitor in an idle state.
     init() {
+    }
+
+    /// Enables or disables workspace observation for tracked apps.
+    func setMonitoringEnabled(_ enabled: Bool) {
+        guard enabled != monitoringEnabled else {
+            if enabled {
+                evaluateRunningApps()
+            }
+            return
+        }
+
+        monitoringEnabled = enabled
+        if enabled {
+            startMonitoring()
+        } else {
+            stopMonitoring()
+        }
+    }
+
+    /// Subscribes to app launch/termination events and performs an initial scan.
+    private func startMonitoring() {
         let center = NSWorkspace.shared.notificationCenter
         center.addObserver(
             self,
@@ -24,9 +46,17 @@ final class RunningApplicationsMonitor {
         evaluateRunningApps()
     }
 
+    /// Removes workspace observers and clears the tracked app set.
+    private func stopMonitoring() {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        guard !runningBundleIdentifiers.isEmpty else { return }
+        runningBundleIdentifiers = []
+        onChange?([])
+    }
+
     /// Removes workspace observers.
     deinit {
-        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        stopMonitoring()
     }
 
     /// Re-evaluates the running app set after workspace notifications.

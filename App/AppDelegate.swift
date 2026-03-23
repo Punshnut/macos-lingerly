@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var menuUpdateTimer: DispatchSourceTimer?
+    private var isMenuOpen = false
     private var hotkeyManager: GlobalHotkeyManager?
     private var defaultsObserver: NSObjectProtocol?
     private let settingsMenuShortcut = ","
@@ -51,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.hotkeyManager?.reload()
+                self?.applyMenuBarStatusWidth()
                 self?.updateCountdownTitle()
             }
         }
@@ -59,7 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         appState.start()
         refreshStatusUI()
-        startMenuUpdateTimer()
+        refreshMenuUpdateTimerIfNeeded()
         showOnboardingIfNeeded()
     }
 
@@ -176,8 +178,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Syncs menu bar icon and menu enablement with app state.
     private func refreshStatusUI() {
-        statusItem?.button?.image = appState.currentIconImage()
+        updateStatusIconImage()
         updateCountdownTitle()
+    }
+
+    /// Renders the status item icon for the current app state.
+    private func updateStatusIconImage() {
+        statusItem?.button?.image = appState.currentIconImage()
     }
 
     /// Toggles between start, pause, and resume based on current timer state.
@@ -436,9 +443,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Starts a timer to keep the countdown label current.
     private func startMenuUpdateTimer() {
-        stopMenuUpdateTimer()
+        guard menuUpdateTimer == nil else { return }
         let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now(), repeating: 1)
+        timer.schedule(deadline: .now(), repeating: 1, leeway: .milliseconds(200))
         timer.setEventHandler { [weak self] in
             self?.updateCountdownTitle()
         }
@@ -446,14 +453,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menuUpdateTimer = timer
     }
 
+    /// Starts or stops countdown refreshes depending on whether visible UI needs live updates.
+    private func refreshMenuUpdateTimerIfNeeded() {
+        if shouldKeepMenuUpdateTimerRunning {
+            startMenuUpdateTimer()
+        } else {
+            stopMenuUpdateTimer()
+        }
+    }
+
+    /// Returns true when the menu panel or menu bar title needs a live countdown.
+    private var shouldKeepMenuUpdateTimerRunning: Bool {
+        if isMenuOpen {
+            return true
+        }
+
+        guard settingsStore.menuBarTimerEnabled, appState.isRunning else {
+            return false
+        }
+
+        switch appState.nextBreakDisplay(at: Date()) {
+        case .running, .muted, .snoozing, .breakActive:
+            return true
+        case .inactive, .paused, .cooldown, .breakDue:
+            return false
+        }
+    }
+
     /// Updates countdown text for both the panel status bar and menu bar title.
     private func updateCountdownTitle() {
         let title = menuCountdownTitle(at: Date())
         refreshControlPanelModel(statusTitle: title)
         let menuBarTitle = menuBarCountdownTitle(from: title)
-        applyMenuBarStatusWidth()
         updateMenuBarButtonTitle(menuBarTitle)
-        statusItem?.button?.image = appState.currentIconImage()
+        refreshMenuUpdateTimerIfNeeded()
     }
 
     /// Builds the human-readable status line shown in the control panel.
@@ -545,14 +578,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Refreshes state and starts per-second updates while the menu is open.
     func menuWillOpen(_ menu: NSMenu) {
+        isMenuOpen = true
+        controlPanelViewModel.isPanelVisible = true
         applyFooterKeyEquivalents()
         updateCountdownTitle()
-        startMenuUpdateTimer()
+        refreshMenuUpdateTimerIfNeeded()
     }
 
     /// Refreshes the status text when the menu closes.
     func menuDidClose(_ menu: NSMenu) {
+        isMenuOpen = false
+        controlPanelViewModel.isPanelVisible = false
         updateCountdownTitle()
+        refreshMenuUpdateTimerIfNeeded()
     }
 
     /// Tears down the open-menu countdown timer if present.
