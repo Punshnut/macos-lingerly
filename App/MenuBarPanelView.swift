@@ -125,32 +125,88 @@ final class MenuBarPanelViewModel: ObservableObject {
 
 struct MenuBarPanelView: View {
     static let panelWidth: CGFloat = 396
-    static let defaultPanelHeight: CGFloat = 442
-    private static let chromeHeight: CGFloat = 186
-    private static let lingerlyContentHeight: CGFloat = 256
+    static let defaultPanelHeight: CGFloat = 460
+    private static let chromeHeight: CGFloat = 178
+    private static let rhythmContentHeight: CGFloat = 256
+    private static let soundsContentHeight: CGFloat = 230
     private static let settingsContentHeight: CGFloat = 282
 
     @ObservedObject var model: MenuBarPanelViewModel
-    @State private var selectedTab: Tab = .lingerly
+    @State private var selectedTab: Tab = .rhythm
 
     @State private var auroraDrift = false
     @State private var shimmerTravel = false
     @State private var statusPulse = false
+    @State private var alertSoundsEnabled = true
+    @State private var backgroundPauseSoundsEnabled = false
+    @State private var selectedAlertSound: AlertSoundStyle = .bell
+    @State private var selectedBackgroundSound: BackgroundSoundStyle = .hush
 
     private enum Tab: String, CaseIterable, Identifiable {
-        case lingerly
+        case rhythm
         case settings
+        case sounds
 
         var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .rhythm: return menuPanelL("menu.panel.tab.lingerly", "Lingerly")
+            case .settings: return menuPanelL("menu.panel.tab.settings", "Settings")
+            case .sounds: return menuPanelL("menu.panel.tab.sounds", "Sounds")
+            }
+        }
+    }
+
+    private enum AlertSoundStyle: String, CaseIterable, Identifiable {
+        case bell
+        case glass
+        case chime
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .bell: return menuPanelL("menu.panel.sound.alert.bell", "Bell")
+            case .glass: return menuPanelL("menu.panel.sound.alert.glass", "Glass")
+            case .chime: return menuPanelL("menu.panel.sound.alert.chime", "Chime")
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .bell: return "bell.fill"
+            case .glass: return "sparkles"
+            case .chime: return "tuningfork"
+            }
+        }
+    }
+
+    private enum BackgroundSoundStyle: String, CaseIterable, Identifiable {
+        case hush
+        case rain
+        case forest
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .hush: return menuPanelL("menu.panel.sound.background.hush", "Hush")
+            case .rain: return menuPanelL("menu.panel.sound.background.rain", "Rain")
+            case .forest: return menuPanelL("menu.panel.sound.background.forest", "Forest")
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .hush: return "waveform"
+            case .rain: return "cloud.drizzle.fill"
+            case .forest: return "leaf.fill"
+            }
+        }
     }
 
     private var contentHeight: CGFloat {
-        switch selectedTab {
-        case .lingerly:
-            Self.lingerlyContentHeight
-        case .settings:
-            Self.settingsContentHeight
-        }
+        max(Self.rhythmContentHeight, Self.soundsContentHeight, Self.settingsContentHeight)
     }
 
     private var panelHeight: CGFloat {
@@ -172,26 +228,27 @@ struct MenuBarPanelView: View {
             tabRow
 
             Group {
-                if selectedTab == .lingerly {
-                    lingerlyTab
+                if selectedTab == .rhythm {
+                    rhythmTab
+                } else if selectedTab == .sounds {
+                    soundsTab
                 } else {
                     settingsTab
                 }
             }
             .frame(height: contentHeight, alignment: .top)
         }
-        .padding(14)
+        .padding(.leading, 14)
+        .padding(.trailing, 14)
+        .padding(.bottom, 14)
+        .padding(.top, 6)
         .frame(width: Self.panelWidth, height: panelHeight, alignment: .top)
         .background(panelBackdrop)
-        .animation(resizeAnimation, value: selectedTab)
         .onAppear {
             reportPanelHeight(animated: false)
             if model.isPanelVisible {
                 startAmbientAnimations()
             }
-        }
-        .onChange(of: selectedTab) { _ in
-            reportPanelHeight(animated: model.isPanelVisible)
         }
         .onChange(of: model.statusKind) { _ in
             restartStatusPulseIfNeeded()
@@ -300,8 +357,9 @@ struct MenuBarPanelView: View {
 
     private var tabRow: some View {
         HStack(spacing: 6) {
-            tabButton(.lingerly, title: menuPanelL("menu.panel.tab.lingerly", "Lingerly"))
-            tabButton(.settings, title: menuPanelL("menu.panel.tab.settings", "Settings"))
+            ForEach(Tab.allCases) { tab in
+                tabButton(tab, title: tab.title)
+            }
         }
         .padding(4)
         .background(
@@ -312,13 +370,12 @@ struct MenuBarPanelView: View {
             Capsule(style: .continuous)
                 .strokeBorder(.white.opacity(0.24), lineWidth: 0.7)
         )
-        .frame(width: 286)
     }
 
     /// Renders a segmented tab button with animated selection state.
     private func tabButton(_ tab: Tab, title: String) -> some View {
         Button {
-            withAnimation(resizeAnimation) {
+            withAnimation(.easeInOut(duration: 0.16)) {
                 selectedTab = tab
             }
         } label: {
@@ -352,13 +409,30 @@ struct MenuBarPanelView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var lingerlyTab: some View {
-        VStack(spacing: 10) {
+    private var rhythmTab: some View {
+        VStack(spacing: 8) {
             frostedIsland {
                 HStack(spacing: 8) {
                     presetButton(title: "20-20-20", presetID: "20-20-20")
                     presetButton(title: "45-15", presetID: "45-15")
                     presetTag(title: menuPanelL("menu.panel.preset.custom", "Custom"), isSelected: model.selectedPresetID == "custom")
+                }
+
+                HStack(spacing: 8) {
+                    soundQuickToggle(
+                        title: menuPanelL("menu.panel.sound.quick.alerts", "Alerts"),
+                        systemImage: "bell.badge.fill",
+                        isSelected: alertSoundsEnabled
+                    ) {
+                        alertSoundsEnabled.toggle()
+                    }
+                    soundQuickToggle(
+                        title: menuPanelL("menu.panel.sound.quick.background", "Background"),
+                        systemImage: "waveform",
+                        isSelected: backgroundPauseSoundsEnabled
+                    ) {
+                        backgroundPauseSoundsEnabled.toggle()
+                    }
                 }
             }
 
@@ -429,6 +503,73 @@ struct MenuBarPanelView: View {
                     actionButton(menuPanelL("menu.panel.action.break_now", "Break now"), action: { model.onTakeBreakNow?() }, isEnabled: model.isRunning)
                     actionButton(menuPanelL("menu.panel.action.skip_break", "Skip break"), action: { model.onSkipBreak?() }, isEnabled: model.isRunning)
                     actionButton(menuPanelL("menu.panel.action.restart", "Restart"), action: { model.onResetTimer?() }, isEnabled: model.isRunning)
+                }
+            }
+        }
+    }
+
+    private var soundsTab: some View {
+        VStack(spacing: 8) {
+            compactFrostedIsland {
+                soundCategoryBlock(
+                    title: menuPanelL("menu.panel.sound.category.alerts", "Alerts"),
+                    subtitle: menuPanelL("menu.panel.sound.category.alerts.subtitle", "Start and end cues"),
+                    systemImage: "bell.badge.fill",
+                    tint: .orange,
+                    isEnabled: alertSoundsEnabled,
+                    toggleAction: { alertSoundsEnabled.toggle() }
+                ) {
+                    ForEach(AlertSoundStyle.allCases) { style in
+                        soundFamilyButton(
+                            title: style.title,
+                            systemImage: style.symbol,
+                            isSelected: selectedAlertSound == style,
+                            action: {
+                                selectedAlertSound = style
+                                alertSoundsEnabled = true
+                            }
+                        )
+                    }
+                }
+            }
+
+            compactFrostedIsland {
+                soundCategoryBlock(
+                    title: menuPanelL("menu.panel.sound.category.background", "Background"),
+                    subtitle: menuPanelL("menu.panel.sound.category.background.subtitle", "During the pause"),
+                    systemImage: "waveform",
+                    tint: .cyan,
+                    isEnabled: backgroundPauseSoundsEnabled,
+                    toggleAction: { backgroundPauseSoundsEnabled.toggle() }
+                ) {
+                    ForEach(BackgroundSoundStyle.allCases) { style in
+                        soundFamilyButton(
+                            title: style.title,
+                            systemImage: style.symbol,
+                            isSelected: selectedBackgroundSound == style,
+                            action: {
+                                selectedBackgroundSound = style
+                                backgroundPauseSoundsEnabled = true
+                            }
+                        )
+                    }
+                }
+            }
+
+            compactFrostedIsland {
+                HStack(spacing: 8) {
+                    soundPreviewButton(
+                        title: menuPanelL("menu.panel.sound.preview.alert", "Play Alert"),
+                        systemImage: "bell.fill"
+                    ) {
+                        alertSoundsEnabled = true
+                    }
+                    soundPreviewButton(
+                        title: menuPanelL("menu.panel.sound.preview.background", "Play Background"),
+                        systemImage: "waveform"
+                    ) {
+                        backgroundPauseSoundsEnabled = true
+                    }
                 }
             }
         }
@@ -677,6 +818,30 @@ struct MenuBarPanelView: View {
         .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
     }
 
+    /// Tighter glass card used in the sounds tab so all content remains visible.
+    private func compactFrostedIsland<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 6) {
+            content()
+        }
+        .padding(8)
+        .background(
+            ZStack {
+                GlassMaterialView(material: .hudWindow)
+                LinearGradient(
+                    colors: [.white.opacity(0.1), .white.opacity(0.04)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(.white.opacity(0.24), lineWidth: 0.7)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+    }
+
     /// Renders a tappable settings toggle tile with current on/off state.
     private func settingTile(
         icon: String,
@@ -872,6 +1037,198 @@ struct MenuBarPanelView: View {
                 Capsule(style: .continuous)
                     .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
             )
+    }
+
+    /// Compact toggle used in the rhythm tab for quick muting of sound families.
+    private func soundQuickToggle(
+        title: String,
+        systemImage: String,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Circle()
+                    .fill(isSelected ? Color.accentColor : Color.white.opacity(0.14))
+                    .frame(width: 10, height: 10)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(.white.opacity(0.28), lineWidth: 0.6)
+                    )
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.8))
+            .background(
+                Capsule(style: .continuous)
+                    .fill(isSelected ? Color.white.opacity(0.24) : Color.white.opacity(0.11))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+            )
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Shared block for alert/background sound families with a quiet header and simple style buttons.
+    private func soundCategoryBlock<Content: View>(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color,
+        isEnabled: Bool,
+        toggleAction: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 9) {
+                ZStack {
+                    Circle()
+                        .fill(tint.opacity(0.18))
+                    Image(systemName: systemImage)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(tint)
+                }
+                .frame(width: 24, height: 24)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    Text(subtitle)
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 8)
+
+                Button(action: toggleAction) {
+                    HStack(spacing: 5) {
+                        Image(systemName: isEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text(isEnabled ? menuPanelL("menu.panel.sound.toggle.on", "On") : menuPanelL("menu.panel.sound.toggle.off", "Muted"))
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .foregroundStyle(isEnabled ? Color.primary : Color.primary.opacity(0.78))
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(isEnabled ? Color.white.opacity(0.24) : Color.white.opacity(0.11))
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+                    )
+                    .contentShape(Capsule(style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: 8) {
+                content()
+            }
+            .opacity(isEnabled ? 1 : 0.58)
+        }
+    }
+
+    /// Button used for selecting one alert/background sound family.
+    private func soundFamilyButton(
+        title: String,
+        systemImage: String,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? Color.white.opacity(0.28) : Color.white.opacity(0.12))
+                    Image(systemName: systemImage)
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .frame(width: 26, height: 26)
+
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.82))
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        isSelected
+                            ? LinearGradient(
+                                colors: [Color.white.opacity(0.26), Color.white.opacity(0.14)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            : LinearGradient(
+                                colors: [Color.white.opacity(0.13), Color.white.opacity(0.08)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(.white.opacity(isSelected ? 0.28 : 0.22), lineWidth: 0.6)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Preview-style action for testing one of the placeholder sound families.
+    private func soundPreviewButton(
+        title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.18))
+                    Image(systemName: systemImage)
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .frame(width: 22, height: 22)
+
+                Text(title)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "play.fill")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .foregroundStyle(.primary)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Formats seconds as a concise localized duration for panel rows.

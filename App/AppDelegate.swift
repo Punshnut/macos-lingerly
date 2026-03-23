@@ -2,12 +2,48 @@ import AppKit
 import Sparkle
 import SwiftUI
 
+private final class ControlPanelMenuContainerView: NSView {
+    let hostingView: NSHostingView<MenuBarPanelView>
+
+    init(rootView: MenuBarPanelView, size: NSSize) {
+        hostingView = NSHostingView(rootView: rootView)
+        super.init(frame: NSRect(origin: .zero, size: size))
+        hostingView.autoresizingMask = [.width, .height]
+        addSubview(hostingView)
+        setPanelSize(size)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var isFlipped: Bool { true }
+
+    override var intrinsicContentSize: NSSize {
+        frame.size
+    }
+
+    override func layout() {
+        super.layout()
+        hostingView.frame = bounds
+    }
+
+    func setPanelSize(_ size: NSSize) {
+        setFrameSize(size)
+        hostingView.frame = bounds
+        invalidateIntrinsicContentSize()
+        needsLayout = true
+        layoutSubtreeIfNeeded()
+    }
+}
+
 /// Manages lifecycle, menu bar UI, and top-level windows for the app.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private var controlPanelItem: NSMenuItem?
-    private var controlPanelHostingView: NSHostingView<MenuBarPanelView>?
+    private var controlPanelContainerView: ControlPanelMenuContainerView?
     private var controlPanelHeight: CGFloat = MenuBarPanelView.defaultPanelHeight
     private let settingsStore = TimingSettingsStore()
     private let launchAtLoginController = LaunchAtLoginController()
@@ -280,18 +316,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Wraps the SwiftUI menu panel in an AppKit hosting view for NSMenu embedding.
     private func makeControlPanelView() -> NSView {
         let panelView = MenuBarPanelView(model: controlPanelViewModel)
-        let hosting = NSHostingView(rootView: panelView)
-        controlPanelHostingView = hosting
+        let initialSize = NSSize(width: MenuBarPanelView.panelWidth, height: controlPanelHeight)
+        let container = ControlPanelMenuContainerView(rootView: panelView, size: initialSize)
+        controlPanelContainerView = container
         controlPanelViewModel.onPanelHeightChange = { [weak self] height, animated in
             self?.updateControlPanelHeight(height, animated: animated)
         }
-        hosting.frame = NSRect(
-            x: 0,
-            y: 0,
-            width: MenuBarPanelView.panelWidth,
-            height: controlPanelHeight
-        )
-        return hosting
+        return container
     }
 
     /// Keeps the menu panel item and its menu window aligned with the selected tab height.
@@ -304,15 +335,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let newSize = NSSize(width: MenuBarPanelView.panelWidth, height: normalizedHeight)
         let delta = normalizedHeight - previousHeight
-        guard let hosting = controlPanelHostingView else { return }
+        guard let container = controlPanelContainerView else { return }
 
-        guard animated, let menuWindow = hosting.window else {
+        guard animated, let menuWindow = container.window else {
             applyControlPanelViewSize(newSize)
-            if let menuWindow = hosting.window {
+            if let menuWindow = container.window {
                 var frame = menuWindow.frame
                 frame.origin.y -= delta
                 frame.size.height += delta
                 menuWindow.setFrame(frame, display: true)
+                applyControlPanelMenuWindowStyling(menuWindow)
             }
             return
         }
@@ -323,23 +355,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
-            hosting.animator().setFrameSize(newSize)
+            container.animator().setFrameSize(newSize)
             menuWindow.animator().setFrame(windowFrame, display: true)
         } completionHandler: {
             DispatchQueue.main.async { [weak self] in
                 self?.applyControlPanelViewSize(newSize)
+                self?.applyControlPanelMenuWindowStyling(menuWindow)
             }
         }
     }
 
     /// Applies the concrete NSHostingView size after animated or immediate height changes.
     private func applyControlPanelViewSize(_ size: NSSize) {
-        guard let hosting = controlPanelHostingView else { return }
-        hosting.setFrameSize(size)
-        hosting.invalidateIntrinsicContentSize()
-        hosting.needsLayout = true
-        hosting.layoutSubtreeIfNeeded()
+        guard let container = controlPanelContainerView else { return }
+        container.setPanelSize(size)
         controlPanelItem?.view?.needsLayout = true
+    }
+
+    /// Styles the stock NSMenu tracking window so exposed chrome matches the custom panel in both appearances.
+    private func applyControlPanelMenuWindowStyling(_ menuWindow: NSWindow) {
+        menuWindow.backgroundColor = controlPanelMenuBackgroundColor(for: menuWindow.effectiveAppearance)
+    }
+
+    /// Returns a subtle dynamic menu window tint that blends with the panel instead of AppKit's default strip.
+    private func controlPanelMenuBackgroundColor(for appearance: NSAppearance) -> NSColor {
+        let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        if isDark {
+            return NSColor(
+                red: 0.20,
+                green: 0.15,
+                blue: 0.26,
+                alpha: 1
+            )
+        }
+
+        return NSColor(
+            red: 0.94,
+            green: 0.90,
+            blue: 0.95,
+            alpha: 1
+        )
     }
 
     /// Wires menu panel actions to app state mutations and UI refreshes.
@@ -638,6 +693,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         controlPanelViewModel.isPanelVisible = true
         applyFooterKeyEquivalents()
         updateCountdownTitle()
+        if let menuWindow = controlPanelContainerView?.window {
+            applyControlPanelMenuWindowStyling(menuWindow)
+        }
         refreshMenuUpdateTimerIfNeeded()
     }
 
