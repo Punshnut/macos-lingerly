@@ -1,6 +1,6 @@
 # Lingerly
 
-Lingerly is a calm macOS menu bar companion that helps you rest your eyes without breaking momentum. It runs quietly in the background, prompts you at the right time, and stays out of the way when you are focused. The interface is intentionally clean and modern, with the most important controls exactly where you expect them in the menu bar panel. Lingerly ships as a fast native universal app for Apple Silicon and Intel Macs: minimal, focused, and open source.
+Lingerly is a calm macOS menu bar app for people who want gentle reminders without extra noise. It stays in the background, keeps the essentials close, and steps aside when you are trying to focus. Built for Apple Silicon and Intel Macs, it is native, lightweight, and open source.
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-native-000000?style=flat&logo=apple" alt="macOS native">
@@ -38,7 +38,7 @@ Lingerly is a calm macOS menu bar companion that helps you rest your eyes withou
   </details>
 </div>
 <p align="center">
-  <sub>Localization translations are being added soon, right now they are english placeholders!</sub>
+  <sub>Localization is on the way. For now, some translations are still English placeholders.</sub>
 </p>
 
 <p align="center">
@@ -47,40 +47,39 @@ Lingerly is a calm macOS menu bar companion that helps you rest your eyes withou
 
 ## Highlights
 
-- **Gentle reminders** - Soft break prompts designed to support focus, not disrupt it.
-- **Simple, polished interface** - A clean menu bar panel with a modern look and low visual noise.
-- **Important controls in the right place** - Start/Pause, quick time shifts (`-15` to `+15`), presets, and break actions are all one click away.
-- **Menu bar first** - Menu bar only; the Dock stays clean.
-- **Fullscreen respect** - Avoids interrupting fullscreen, using notifications when needed.
-- **Smart Pause awareness** - Can pause around media, selected apps, and schedules, then resume with your chosen behavior.
-- **Muted mode** - Keeps timing active while suppressing overlays, notifications, and sounds.
-- **Hold-to-skip** - Skip only by holding space or click-and-hold; no accidental dismissals.
-- **Optional lock screen** - Lock Screen appears only when you choose it.
-- **Shortcuts ready** - Automate actions via Apple Shortcuts (pause, resume, skip, snooze, reset).
-- **Clear status icon** - Simple visual state language in the menu bar.
-- **Presets + custom** - Start with presets, then fine-tune.
-- **Privacy by design** - No tracking, no accounts, stats stay on-device.
-- **Universal & smooth** - Native universal build for Intel and Apple Silicon.
-- **Open source & MIT** - Open source under MIT.
+- **Gentle reminders** - Break prompts that are there to help, not interrupt.
+- **Low visual noise** - A clean menu bar panel with the essentials in easy reach.
+- **Everything close by** - Start/Pause, quick time shifts (`-15` to `+15`), presets, and break actions are one click away.
+- **Menu bar only** - No Dock presence, no extra clutter.
+- **Fullscreen aware** - Respects fullscreen work and uses notifications when needed.
+- **Smart Pause** - Can pause around media, selected apps, and schedules, then continue the way you prefer.
+- **Muted mode** - Keeps timing active while silencing overlays, notifications, and sounds.
+- **Hold-to-skip** - Skip only by holding `Space` or click-and-hold.
+- **Optional lock screen** - Available if you want it, absent if you do not.
+- **Shortcuts support** - Works with Apple Shortcuts for pause, resume, skip, snooze, and reset.
+- **Clear status icon** - Quiet, simple state feedback in the menu bar.
+- **Presets and custom setups** - Start simple, then adjust.
+- **Private by default** - No tracking, no accounts, stats stay on-device.
+- **Native and open** - Universal for Intel and Apple Silicon, and MIT licensed.
 
-## Focus that just works
+## Timing that fits around your work
 
-- **Active-time mode** - The timer advances only while you are active and unlocked.
-- **Interval mode** - Optional fixed cadence every X minutes.
-- **Scheduled times** - Trigger breaks at specific clock times.
-- **Smart Pause sources** - Pause automatically for media playback, selected apps, or configured schedule windows.
-- **Resume behavior control** - Choose whether start/resume continues the timer or resets it after Smart Pause.
-- **Combinations** - Combine modes and pause logic to match your workflow.
+- **Active-time mode** - The timer moves only while you are active and your Mac is unlocked.
+- **Interval mode** - Use a fixed cadence every X minutes.
+- **Scheduled times** - Trigger breaks at specific times of day.
+- **Smart Pause sources** - Pause automatically for media playback, selected apps, or schedule windows.
+- **Resume behavior** - Choose whether resume continues the timer or resets it after Smart Pause.
+- **Flexible combinations** - Mix timing modes and pause logic in a way that suits your day.
 
-## Gestures (touchpad or mouse)
+## Simple interactions
 
 - **Hold to skip** by press-and-hold anywhere on the overlay.
 - **Tap lock screen** if you’ve enabled the optional action.
-- **No gestures required** to keep Lingerly calm and lightweight.
+- **No gestures required** if you prefer to keep things minimal.
 
 ## Keyboard shortcuts
 
-- **Menu bar control:** Start/Stop, Snooze, Settings, and Quit from the menu bar.
+- **Menu bar control:** Start/Stop, Snooze, Settings, and Quit are always close at hand.
 - **Skip a break:** hold `Space` while the overlay is up.
 - **Configurable hotkeys:** assign global shortcuts for start/stop, reset, and quick actions.
 
@@ -88,16 +87,16 @@ Lingerly is a calm macOS menu bar companion that helps you rest your eyes withou
 
 - **Shortcuts actions:** Pause timer, Resume timer, Skip break, Snooze break, Reset timer.
 - **Where to find them:** Shortcuts app → Lingerly.
-- **Best for:** scheduled workflows, focus sessions, and quick menu bar triggers.
+- **Useful for:** scheduled workflows, focus sessions, and small everyday automations.
 
 ## Quick tips
 
-- **Choose a preset** to get started fast, then customize as needed.
+- **Choose a preset** to get started, then adjust only if you need to.
 - **Keep fullscreen safe** if you are presenting or recording.
 - **Use snooze** for short interruptions instead of turning Lingerly off.
-- **Use Muted mode** when you want full suppression but still want timing rhythm preserved.
+- **Use Muted mode** when you want the timing to continue quietly in the background.
 - **Enable lock screen** only if you want a firm, explicit action.
-- **Keep it quiet** - Lingerly is designed to fade into the background between breaks.
+- **Keep it quiet** - Lingerly is meant to fade into the background between breaks.
 
 ## License & support
 
@@ -105,12 +104,16 @@ Lingerly is a calm macOS menu bar companion that helps you rest your eyes withou
 
 ## Roadmap
 
-Here are a few improvements planned for upcoming releases:
+Here are a few things planned for future releases:
 - **Smarter rhythms** - adaptive break timing based on real activity
-- **Better overlays** - calmer visuals and richer accessibility options
-- **Sound cues (optional)** - subtle, non-distracting sounds with configurable sound options (kept minimal by default)
+- **Better overlays** - calmer visuals and broader accessibility options
+- **Optional sound cues** - subtle sound options, including an original in-house sound pack now in progress
 
 [Donate (Ko-Fi)](https://ko-fi.com/janfeuerbacher)
+
+## Original sound pack in progress
+
+The current sound options are placeholders, and something more considered is on the way. Stay tuned for a free set of original, high-fidelity sound cues made in-house by the app's creator, shaped by years of professional filmmaking and post-production work. The aim is simple: calm, understated sounds with a more crafted, studio-quality feel.
 
 Made with ❤️
 
