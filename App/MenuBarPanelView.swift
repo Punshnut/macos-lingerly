@@ -140,7 +140,7 @@ struct MenuBarPanelView: View {
     @State private var alertSoundsEnabled = true
     @State private var backgroundPauseSoundsEnabled = false
     @State private var selectedAlertSound: AlertSoundStyle = .bell
-    @State private var selectedBackgroundSound: BackgroundSoundStyle = .hush
+    @State private var selectedBackgroundSound: BackgroundSoundStyle = .waves
 
     private enum Tab: String, CaseIterable, Identifiable {
         case rhythm
@@ -182,7 +182,7 @@ struct MenuBarPanelView: View {
     }
 
     private enum BackgroundSoundStyle: String, CaseIterable, Identifiable {
-        case hush
+        case waves
         case rain
         case forest
 
@@ -190,7 +190,7 @@ struct MenuBarPanelView: View {
 
         var title: String {
             switch self {
-            case .hush: return menuPanelL("menu.panel.sound.background.hush", "Hush")
+            case .waves: return menuPanelL("menu.panel.sound.background.waves", "Waves")
             case .rain: return menuPanelL("menu.panel.sound.background.rain", "Rain")
             case .forest: return menuPanelL("menu.panel.sound.background.forest", "Forest")
             }
@@ -198,7 +198,7 @@ struct MenuBarPanelView: View {
 
         var symbol: String {
             switch self {
-            case .hush: return "waveform"
+            case .waves: return "water.waves"
             case .rain: return "cloud.drizzle.fill"
             case .forest: return "leaf.fill"
             }

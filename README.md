@@ -44,6 +44,8 @@ Lingerly is a calm macOS menu bar app for people who want gentle reminders witho
   <img src="Media/Lingerly_Screenshot.png" alt="Lingerly Screenshot" width="600">
 </p>
 
+> **Lingerly is almost here.** The release is right around the corner - sounds not included yet, but being crafted to feel just right. They will land in a free update shortly after.
+
 ## Highlights
 
 - **Gentle reminders** - Break prompts that are there to help, not interrupt.
