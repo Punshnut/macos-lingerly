@@ -238,14 +238,14 @@ struct MenuBarPanelView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .foregroundStyle(.white)
-                    .background(startButtonBackground)
-                    .overlay(
-                        Capsule(style: .continuous)
-                            .strokeBorder(.white.opacity(0.24), lineWidth: 0.8)
-                    )
-                    .contentShape(Capsule(style: .continuous))
             }
             .buttonStyle(.plain)
+            .background(startButtonBackground)
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(.white.opacity(0.24), lineWidth: 0.8)
+            )
+            .contentShape(Capsule(style: .continuous))
 
             topActionButton(title: "+1", action: { model.onDeferOneMinute?() }, isEnabled: model.isRunning)
             topActionButton(title: "+5", action: { model.onDeferFiveMinutes?() }, isEnabled: model.isRunning)
@@ -321,8 +321,11 @@ struct MenuBarPanelView: View {
                     .padding(.vertical, 7)
                     .contentTransition(.identity)
             }
+            .frame(maxWidth: .infinity)
+            .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
     }
 
     private var lingerlyTab: some View {
