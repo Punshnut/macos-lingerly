@@ -110,6 +110,7 @@ final class MenuBarPanelViewModel: ObservableObject {
     var onSetSmartPauseCooldownMinutes: ((Int) -> Void)?
     var onSetSmartPauseResumeBehavior: ((SmartPauseResumeBehavior) -> Void)?
     var onOpenSettings: (() -> Void)?
+    var onPanelHeightChange: ((CGFloat, Bool) -> Void)?
 
     var startStopTitle: String {
         (!isRunning || isPaused)
@@ -124,7 +125,10 @@ final class MenuBarPanelViewModel: ObservableObject {
 
 struct MenuBarPanelView: View {
     static let panelWidth: CGFloat = 396
-    static let panelHeight: CGFloat = 492
+    static let defaultPanelHeight: CGFloat = 442
+    private static let chromeHeight: CGFloat = 186
+    private static let lingerlyContentHeight: CGFloat = 256
+    private static let settingsContentHeight: CGFloat = 282
 
     @ObservedObject var model: MenuBarPanelViewModel
     @State private var selectedTab: Tab = .lingerly
@@ -133,13 +137,28 @@ struct MenuBarPanelView: View {
     @State private var shimmerTravel = false
     @State private var statusPulse = false
 
-    private let contentHeight: CGFloat = 306
-
     private enum Tab: String, CaseIterable, Identifiable {
         case lingerly
         case settings
 
         var id: String { rawValue }
+    }
+
+    private var contentHeight: CGFloat {
+        switch selectedTab {
+        case .lingerly:
+            Self.lingerlyContentHeight
+        case .settings:
+            Self.settingsContentHeight
+        }
+    }
+
+    private var panelHeight: CGFloat {
+        Self.chromeHeight + contentHeight
+    }
+
+    private var resizeAnimation: Animation {
+        .spring(response: 0.24, dampingFraction: 0.9)
     }
 
     private var shouldPulseStatus: Bool {
@@ -162,12 +181,17 @@ struct MenuBarPanelView: View {
             .frame(height: contentHeight, alignment: .top)
         }
         .padding(14)
-        .frame(width: Self.panelWidth, height: Self.panelHeight, alignment: .top)
+        .frame(width: Self.panelWidth, height: panelHeight, alignment: .top)
         .background(panelBackdrop)
+        .animation(resizeAnimation, value: selectedTab)
         .onAppear {
+            reportPanelHeight(animated: false)
             if model.isPanelVisible {
                 startAmbientAnimations()
             }
+        }
+        .onChange(of: selectedTab) { _ in
+            reportPanelHeight(animated: model.isPanelVisible)
         }
         .onChange(of: model.statusKind) { _ in
             restartStatusPulseIfNeeded()
@@ -193,8 +217,8 @@ struct MenuBarPanelView: View {
                         colors: [.white, .white, .clear],
                         startPoint: .top,
                         endPoint: .bottom
-                    )
-                    .frame(height: 54)
+                        )
+                        .frame(height: 54)
                 }
             )
     }
@@ -294,7 +318,7 @@ struct MenuBarPanelView: View {
     /// Renders a segmented tab button with animated selection state.
     private func tabButton(_ tab: Tab, title: String) -> some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.16)) {
+            withAnimation(resizeAnimation) {
                 selectedTab = tab
             }
         } label: {
@@ -877,6 +901,11 @@ struct MenuBarPanelView: View {
             format: menuPanelL("menu.panel.value.minutes_format", "%d min"),
             minutes
         )
+    }
+
+    /// Reports the currently selected panel height so AppKit can keep the menu item in sync.
+    private func reportPanelHeight(animated: Bool) {
+        model.onPanelHeightChange?(panelHeight, animated)
     }
 }
 

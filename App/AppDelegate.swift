@@ -6,6 +6,9 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
+    private var controlPanelItem: NSMenuItem?
+    private var controlPanelHostingView: NSHostingView<MenuBarPanelView>?
+    private var controlPanelHeight: CGFloat = MenuBarPanelView.defaultPanelHeight
     private let settingsStore = TimingSettingsStore()
     private let launchAtLoginController = LaunchAtLoginController()
     private let controlPanelViewModel = MenuBarPanelViewModel()
@@ -104,6 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         configureControlPanelCallbacks()
         let controlPanelItem = NSMenuItem()
+        self.controlPanelItem = controlPanelItem
         controlPanelItem.view = makeControlPanelView()
         menu.addItem(controlPanelItem)
 
@@ -277,13 +281,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func makeControlPanelView() -> NSView {
         let panelView = MenuBarPanelView(model: controlPanelViewModel)
         let hosting = NSHostingView(rootView: panelView)
+        controlPanelHostingView = hosting
+        controlPanelViewModel.onPanelHeightChange = { [weak self] height, animated in
+            self?.updateControlPanelHeight(height, animated: animated)
+        }
         hosting.frame = NSRect(
             x: 0,
             y: 0,
             width: MenuBarPanelView.panelWidth,
-            height: MenuBarPanelView.panelHeight
+            height: controlPanelHeight
         )
         return hosting
+    }
+
+    /// Keeps the menu panel item and its menu window aligned with the selected tab height.
+    private func updateControlPanelHeight(_ height: CGFloat, animated: Bool) {
+        let normalizedHeight = max(height, MenuBarPanelView.defaultPanelHeight)
+        let previousHeight = controlPanelHeight
+        guard abs(previousHeight - normalizedHeight) > 0.5 else { return }
+
+        controlPanelHeight = normalizedHeight
+
+        let newSize = NSSize(width: MenuBarPanelView.panelWidth, height: normalizedHeight)
+        let delta = normalizedHeight - previousHeight
+        guard let hosting = controlPanelHostingView else { return }
+
+        guard animated, let menuWindow = hosting.window else {
+            applyControlPanelViewSize(newSize)
+            if let menuWindow = hosting.window {
+                var frame = menuWindow.frame
+                frame.origin.y -= delta
+                frame.size.height += delta
+                menuWindow.setFrame(frame, display: true)
+            }
+            return
+        }
+
+        var windowFrame = menuWindow.frame
+        windowFrame.origin.y -= delta
+        windowFrame.size.height += delta
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            hosting.animator().setFrameSize(newSize)
+            menuWindow.animator().setFrame(windowFrame, display: true)
+        } completionHandler: {
+            DispatchQueue.main.async { [weak self] in
+                self?.applyControlPanelViewSize(newSize)
+            }
+        }
+    }
+
+    /// Applies the concrete NSHostingView size after animated or immediate height changes.
+    private func applyControlPanelViewSize(_ size: NSSize) {
+        guard let hosting = controlPanelHostingView else { return }
+        hosting.setFrameSize(size)
+        hosting.invalidateIntrinsicContentSize()
+        hosting.needsLayout = true
+        hosting.layoutSubtreeIfNeeded()
+        controlPanelItem?.view?.needsLayout = true
     }
 
     /// Wires menu panel actions to app state mutations and UI refreshes.
