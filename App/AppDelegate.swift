@@ -2,48 +2,21 @@ import AppKit
 import Sparkle
 import SwiftUI
 
-private final class ControlPanelMenuContainerView: NSView {
-    let hostingView: NSHostingView<MenuBarPanelView>
-
-    init(rootView: MenuBarPanelView, size: NSSize) {
-        hostingView = NSHostingView(rootView: rootView)
-        super.init(frame: NSRect(origin: .zero, size: size))
-        hostingView.autoresizingMask = [.width, .height]
-        addSubview(hostingView)
-        setPanelSize(size)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override var isFlipped: Bool { true }
-
-    override var intrinsicContentSize: NSSize {
-        frame.size
-    }
-
-    override func layout() {
-        super.layout()
-        hostingView.frame = bounds
-    }
-
-    func setPanelSize(_ size: NSSize) {
-        setFrameSize(size)
-        hostingView.frame = bounds
-        invalidateIntrinsicContentSize()
-        needsLayout = true
-        layoutSubtreeIfNeeded()
-    }
+/// Borderless non-activating panel that can still become the key window for keyboard routing.
+private final class ControlPanelPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
 }
 
 /// Manages lifecycle, menu bar UI, and top-level windows for the app.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
-    private var controlPanelItem: NSMenuItem?
-    private var controlPanelContainerView: ControlPanelMenuContainerView?
+    private var footerMenu: NSMenu?
+    private var controlPanelPanel: ControlPanelPanel?
+    private var panelHostingView: NSHostingView<MenuBarPanelView>?
+    private var panelEventMonitor: Any?
+    private var panelKeyMonitor: Any?
+    private var lastPanelHideDate = Date.distantPast
     private var controlPanelHeight: CGFloat = MenuBarPanelView.defaultPanelHeight
     private let settingsStore = TimingSettingsStore()
     private let launchAtLoginController = LaunchAtLoginController()
@@ -136,17 +109,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         onboardingWindow = window
     }
 
-    /// Builds the status item and its menu actions.
+    /// Builds the status item, footer menu, and control-panel panel.
     private func configureStatusItem() {
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+
+        // Footer menu — shown on right-click (Settings / Updates / About / Quit)
         let menu = NSMenu()
         menu.showsStateColumn = false
-
-        configureControlPanelCallbacks()
-        let controlPanelItem = NSMenuItem()
-        self.controlPanelItem = controlPanelItem
-        controlPanelItem.view = makeControlPanelView()
-        menu.addItem(controlPanelItem)
+        menu.delegate = self
 
         let settingsItem = NSMenuItem(
             title: String(localized: "Settings..."),
@@ -198,9 +168,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(quitItem)
         self.quitItem = quitItem
 
-        applyFooterKeyEquivalents()
-        menu.delegate = self
-        statusItem.menu = menu
+        footerMenu = menu
+
+        // Left-click shows the control-panel panel; right-click shows the footer menu.
+        statusItem.button?.target = self
+        statusItem.button?.action = #selector(statusBarButtonClicked(_:))
+        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseDown])
+
+        controlPanelPanel = makeControlPanelPanel()
         self.statusItem = statusItem
         applyMenuBarStatusWidth()
     }
@@ -314,88 +289,160 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         window.setFrameOrigin(origin)
     }
 
-    /// Wraps the SwiftUI menu panel in an AppKit hosting view for NSMenu embedding.
-    private func makeControlPanelView() -> NSView {
-        let panelView = MenuBarPanelView(model: controlPanelViewModel)
-        let initialSize = NSSize(width: MenuBarPanelView.panelWidth, height: controlPanelHeight)
-        let container = ControlPanelMenuContainerView(rootView: panelView, size: initialSize)
-        controlPanelContainerView = container
-        controlPanelViewModel.onPanelHeightChange = { [weak self] height, animated in
-            self?.updateControlPanelHeight(height, animated: animated)
+    /// Handles status bar button clicks: left-click toggles the panel, right-click shows the footer menu.
+    @objc private func statusBarButtonClicked(_ sender: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else { return }
+        if event.type == .rightMouseDown {
+            if let menu = footerMenu {
+                applyFooterKeyEquivalents()
+                menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height + 2), in: sender)
+            }
+        } else {
+            if controlPanelViewModel.isPanelVisible {
+                hideControlPanelPanel()
+            } else {
+                showControlPanelPanel()
+            }
         }
-        return container
     }
 
-    /// Keeps the menu panel item and its menu window aligned with the selected tab height.
-    private func updateControlPanelHeight(_ height: CGFloat, animated: Bool) {
+    /// Builds the floating panel that hosts the aurora control panel.
+    private func makeControlPanelPanel() -> ControlPanelPanel {
+        let width = MenuBarPanelView.panelWidth
+        let panel = ControlPanelPanel(
+            contentRect: NSRect(x: 0, y: 0, width: width, height: controlPanelHeight),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.level = .popUpMenu
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = true
+
+        // NSVisualEffectView provides the vibrancy backdrop that .withinWindow GlassMaterialViews sample from.
+        let vibrancy = NSVisualEffectView()
+        vibrancy.material = .popover
+        vibrancy.blendingMode = .behindWindow
+        vibrancy.state = .active
+        vibrancy.wantsLayer = true
+        panel.contentView = vibrancy
+        // Set layer properties after the view enters the window hierarchy so the layer is stable.
+        vibrancy.layer?.cornerRadius = 8
+        vibrancy.layer?.masksToBounds = true
+
+        // Hosting view is a subview OF vibrancy — not a sibling — so .withinWindow compositing works correctly.
+        configureControlPanelCallbacks()
+        let panelView = MenuBarPanelView(model: controlPanelViewModel)
+        let hostingView = NSHostingView(rootView: panelView)
+        hostingView.frame = vibrancy.bounds
+        hostingView.autoresizingMask = [.width, .height]
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = .clear
+        vibrancy.addSubview(hostingView)
+        panelHostingView = hostingView
+
+        controlPanelViewModel.onPanelHeightChange = { [weak self, weak panel] height, animated in
+            self?.resizeControlPanelPanel(panel, height: height, animated: animated)
+        }
+        return panel
+    }
+
+    /// Positions and shows the control-panel panel below the status bar button.
+    private func showControlPanelPanel() {
+        guard Date().timeIntervalSince(lastPanelHideDate) > 0.15 else { return }
+        guard let panel = controlPanelPanel,
+              let button = statusItem?.button,
+              let buttonWindow = button.window else { return }
+
+        refreshControlPanelModel()
+        updateCountdownTitle()
+
+        let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+        var x = buttonRect.midX - panel.frame.width / 2
+        let y = buttonRect.minY - panel.frame.height - 4
+
+        if let screen = NSScreen.screens.first(where: { $0.frame.contains(buttonRect.origin) }) ?? NSScreen.main {
+            x = max(screen.visibleFrame.minX + 4, min(x, screen.visibleFrame.maxX - panel.frame.width - 4))
+        }
+
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        // makeKeyAndOrderFront makes the panel the key window (receives keyboard events)
+        // without activating the app, because the panel has .nonactivatingPanel style.
+        panel.makeKeyAndOrderFront(nil)
+        controlPanelViewModel.isPanelVisible = true
+        refreshMenuUpdateTimerIfNeeded()
+
+        // Dismiss when clicking outside the panel (global = events in other processes).
+        panelEventMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] _ in
+            self?.hideControlPanelPanel()
+        }
+
+        // Route Cmd+,, Cmd+Q, and Escape through the panel (local = no Accessibility permission needed).
+        panelKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            let cmdOnly = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
+            if cmdOnly {
+                switch event.charactersIgnoringModifiers {
+                case self.settingsMenuShortcut:
+                    self.showSettingsWindow(selecting: .general)
+                    self.hideControlPanelPanel()
+                    return nil
+                case self.quitMenuShortcut:
+                    NSApp.terminate(nil)
+                    return nil
+                default:
+                    break
+                }
+            }
+            if event.keyCode == 53 { // Escape
+                self.hideControlPanelPanel()
+                return nil
+            }
+            return event
+        }
+    }
+
+    /// Hides the control-panel panel and tears down all event monitors.
+    private func hideControlPanelPanel() {
+        controlPanelPanel?.orderOut(nil)
+        controlPanelViewModel.isPanelVisible = false
+        lastPanelHideDate = Date()
+        refreshMenuUpdateTimerIfNeeded()
+        if let monitor = panelEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            panelEventMonitor = nil
+        }
+        if let monitor = panelKeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            panelKeyMonitor = nil
+        }
+    }
+
+    /// Resizes the control-panel panel when the SwiftUI view reports a tab-height change.
+    private func resizeControlPanelPanel(_ panel: NSPanel?, height: CGFloat, animated: Bool) {
+        guard let panel else { return }
         let normalizedHeight = max(height, MenuBarPanelView.defaultPanelHeight)
         let previousHeight = controlPanelHeight
         guard abs(previousHeight - normalizedHeight) > 0.5 else { return }
-
         controlPanelHeight = normalizedHeight
 
-        let newSize = NSSize(width: MenuBarPanelView.panelWidth, height: normalizedHeight)
         let delta = normalizedHeight - previousHeight
-        guard let container = controlPanelContainerView else { return }
+        var newFrame = panel.frame
+        newFrame.origin.y -= delta
+        newFrame.size.height = normalizedHeight
 
-        guard animated, let menuWindow = container.window else {
-            applyControlPanelViewSize(newSize)
-            if let menuWindow = container.window {
-                var frame = menuWindow.frame
-                frame.origin.y -= delta
-                frame.size.height += delta
-                menuWindow.setFrame(frame, display: true)
-                applyControlPanelMenuWindowStyling(menuWindow)
+        if animated {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.2
+                panel.animator().setFrame(newFrame, display: true)
             }
-            return
+        } else {
+            panel.setFrame(newFrame, display: true)
         }
-
-        var windowFrame = menuWindow.frame
-        windowFrame.origin.y -= delta
-        windowFrame.size.height += delta
-
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            container.animator().setFrameSize(newSize)
-            menuWindow.animator().setFrame(windowFrame, display: true)
-        } completionHandler: {
-            DispatchQueue.main.async { [weak self] in
-                self?.applyControlPanelViewSize(newSize)
-                self?.applyControlPanelMenuWindowStyling(menuWindow)
-            }
-        }
-    }
-
-    /// Applies the concrete NSHostingView size after animated or immediate height changes.
-    private func applyControlPanelViewSize(_ size: NSSize) {
-        guard let container = controlPanelContainerView else { return }
-        container.setPanelSize(size)
-        controlPanelItem?.view?.needsLayout = true
-    }
-
-    /// Styles the stock NSMenu tracking window so exposed chrome matches the custom panel in both appearances.
-    private func applyControlPanelMenuWindowStyling(_ menuWindow: NSWindow) {
-        menuWindow.backgroundColor = controlPanelMenuBackgroundColor(for: menuWindow.effectiveAppearance)
-    }
-
-    /// Returns a subtle dynamic menu window tint that blends with the panel instead of AppKit's default strip.
-    private func controlPanelMenuBackgroundColor(for appearance: NSAppearance) -> NSColor {
-        let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        if isDark {
-            return NSColor(
-                red: 0.20,
-                green: 0.15,
-                blue: 0.26,
-                alpha: 1
-            )
-        }
-
-        return NSColor(
-            red: 0.94,
-            green: 0.90,
-            blue: 0.95,
-            alpha: 1
-        )
     }
 
     /// Wires menu panel actions to app state mutations and UI refreshes.
@@ -574,9 +621,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// Returns true when the menu panel or menu bar title needs a live countdown.
+    /// Returns true when the control panel, footer menu, or menu bar title needs a live countdown.
     private var shouldKeepMenuUpdateTimerRunning: Bool {
-        if isMenuOpen {
+        if controlPanelViewModel.isPanelVisible || isMenuOpen {
             return true
         }
 
@@ -688,22 +735,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         button.attributedTitle = NSAttributedString(string: title, attributes: attributes)
     }
 
-    /// Refreshes state and starts per-second updates while the menu is open.
+    /// Refreshes key equivalents and countdown while the footer menu is open.
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
-        controlPanelViewModel.isPanelVisible = true
         applyFooterKeyEquivalents()
         updateCountdownTitle()
-        if let menuWindow = controlPanelContainerView?.window {
-            applyControlPanelMenuWindowStyling(menuWindow)
-        }
         refreshMenuUpdateTimerIfNeeded()
     }
 
-    /// Refreshes the status text when the menu closes.
+    /// Cleans up after the footer menu closes.
     func menuDidClose(_ menu: NSMenu) {
         isMenuOpen = false
-        controlPanelViewModel.isPanelVisible = false
         updateCountdownTitle()
         refreshMenuUpdateTimerIfNeeded()
     }

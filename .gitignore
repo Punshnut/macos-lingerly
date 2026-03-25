@@ -27,6 +27,7 @@ Lingerly.xcworkspace/
 # Local development tooling metadata
 .vscode/
 .sandbox-home/
+/.claude/
 
 # Xcode derived data
 DerivedData/
