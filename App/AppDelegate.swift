@@ -359,19 +359,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         refreshControlPanelModel()
         updateCountdownTitle()
 
+        let fullWidth = MenuBarPanelView.panelWidth
+        let fullHeight = controlPanelHeight
         let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
-        var x = buttonRect.midX - panel.frame.width / 2
-        let y = buttonRect.minY - panel.frame.height - 4
+        var x = buttonRect.midX - fullWidth / 2
+        let y = buttonRect.minY - fullHeight - 4
 
         if let screen = NSScreen.screens.first(where: { $0.frame.contains(buttonRect.origin) }) ?? NSScreen.main {
-            x = max(screen.visibleFrame.minX + 4, min(x, screen.visibleFrame.maxX - panel.frame.width - 4))
+            x = max(screen.visibleFrame.minX + 4, min(x, screen.visibleFrame.maxX - fullWidth - 4))
         }
 
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        // Full destination frame
+        let fullFrame = NSRect(x: x, y: y, width: fullWidth, height: fullHeight)
+        // Starting frame: 92% scale with top edge (maxY) pinned to the menu bar button
+        let scale: CGFloat = 0.92
+        let startFrame = NSRect(
+            x: fullFrame.midX - fullWidth * scale / 2,
+            y: fullFrame.maxY - fullHeight * scale,
+            width: fullWidth * scale,
+            height: fullHeight * scale
+        )
+        panel.setFrame(startFrame, display: false)
+        panel.alphaValue = 0
         // makeKeyAndOrderFront makes the panel the key window (receives keyboard events)
         // without activating the app, because the panel has .nonactivatingPanel style.
         panel.makeKeyAndOrderFront(nil)
         controlPanelViewModel.isPanelVisible = true
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.22
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1
+            panel.animator().setFrame(fullFrame, display: true)
+        }
         refreshMenuUpdateTimerIfNeeded()
 
         // Dismiss when clicking outside the panel (global = events in other processes).
@@ -408,18 +427,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Hides the control-panel panel and tears down all event monitors.
     private func hideControlPanelPanel() {
-        controlPanelPanel?.orderOut(nil)
+        guard let panel = controlPanelPanel, panel.alphaValue > 0 else { return }
+        let fullFrame = panel.frame  // captured while panel is still at full size
+
         controlPanelViewModel.isPanelVisible = false
         lastPanelHideDate = Date()
         refreshMenuUpdateTimerIfNeeded()
-        if let monitor = panelEventMonitor {
-            NSEvent.removeMonitor(monitor)
-            panelEventMonitor = nil
-        }
-        if let monitor = panelKeyMonitor {
-            NSEvent.removeMonitor(monitor)
-            panelKeyMonitor = nil
-        }
+        // Remove monitors synchronously so no further events fire during the animation.
+        if let monitor = panelEventMonitor { NSEvent.removeMonitor(monitor); panelEventMonitor = nil }
+        if let monitor = panelKeyMonitor   { NSEvent.removeMonitor(monitor); panelKeyMonitor = nil }
+
+        let scale: CGFloat = 0.92
+        let collapseFrame = NSRect(
+            x: fullFrame.midX - fullFrame.width * scale / 2,
+            y: fullFrame.maxY - fullFrame.height * scale,
+            width: fullFrame.width * scale,
+            height: fullFrame.height * scale
+        )
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.18
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().alphaValue = 0
+            panel.animator().setFrame(collapseFrame, display: true)
+        }, completionHandler: {
+            Task { @MainActor [weak panel] in
+                panel?.orderOut(nil)
+                panel?.setFrame(fullFrame, display: false)  // restore for next open
+                panel?.alphaValue = 1
+            }
+        })
     }
 
     /// Resizes the control-panel panel when the SwiftUI view reports a tab-height change.

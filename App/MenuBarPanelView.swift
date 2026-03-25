@@ -246,19 +246,13 @@ struct MenuBarPanelView: View {
         .background(panelBackdrop)
         .onAppear {
             reportPanelHeight(animated: false)
-            if model.isPanelVisible {
-                startAmbientAnimations()
-            }
+            if model.isPanelVisible { startAmbientAnimations() }
         }
         .onChange(of: model.statusKind) { _ in
             restartStatusPulseIfNeeded()
         }
         .onChange(of: model.isPanelVisible) { isVisible in
-            if isVisible {
-                startAmbientAnimations()
-            } else {
-                stopAmbientAnimations()
-            }
+            if isVisible { startAmbientAnimations() } else { stopAmbientAnimations() }
         }
         .onDisappear {
             stopAmbientAnimations()
@@ -320,7 +314,7 @@ struct MenuBarPanelView: View {
                     .padding(.vertical, 10)
                     .foregroundStyle(.white)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelButtonStyle(pressScale: 0.96))
             .background(startButtonBackground)
             .overlay(
                 Capsule(style: .continuous)
@@ -405,7 +399,7 @@ struct MenuBarPanelView: View {
             .frame(maxWidth: .infinity)
             .contentShape(Capsule(style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle(pressScale: 0.97))
         .frame(maxWidth: .infinity)
     }
 
@@ -790,7 +784,7 @@ struct MenuBarPanelView: View {
             .frame(width: 38, height: 34)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle(pressScale: 0.88, isEnabled: isEnabled))
         .disabled(!isEnabled)
     }
 
@@ -879,7 +873,7 @@ struct MenuBarPanelView: View {
             )
             .contentShape(Capsule(style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle())
     }
 
     /// Renders one selectable smart-pause resume behavior chip.
@@ -904,7 +898,7 @@ struct MenuBarPanelView: View {
                 )
                 .contentShape(Capsule(style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle())
     }
 
     /// Builds a full-width action button for break/session controls.
@@ -925,8 +919,8 @@ struct MenuBarPanelView: View {
                 )
                 .contentShape(Capsule(style: .continuous))
         }
-            .buttonStyle(.plain)
-            .disabled(!isEnabled)
+        .buttonStyle(PanelButtonStyle(isEnabled: isEnabled))
+        .disabled(!isEnabled)
     }
 
     /// Builds +/- quick-shift controls for adjusting next break timing.
@@ -947,8 +941,8 @@ struct MenuBarPanelView: View {
                 )
                 .contentShape(Capsule(style: .continuous))
         }
-            .buttonStyle(.plain)
-            .disabled(!isEnabled)
+        .buttonStyle(PanelButtonStyle(pressScale: 0.93, isEnabled: isEnabled))
+        .disabled(!isEnabled)
     }
 
     /// Displays a value row with decrement/increment steppers.
@@ -996,7 +990,7 @@ struct MenuBarPanelView: View {
             .frame(width: 22, height: 22)
             .contentShape(Circle())
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(PanelButtonStyle(pressScale: 0.88, isEnabled: isEnabled))
         .disabled(!isEnabled)
     }
 
@@ -1020,7 +1014,7 @@ struct MenuBarPanelView: View {
                 )
                 .contentShape(Capsule(style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle())
     }
 
     /// Non-interactive visual tag used for the current custom preset state.
@@ -1076,7 +1070,7 @@ struct MenuBarPanelView: View {
             )
             .contentShape(Capsule(style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle())
     }
 
     /// Shared block for alert/background sound families with a quiet header and simple style buttons.
@@ -1130,7 +1124,7 @@ struct MenuBarPanelView: View {
                     )
                     .contentShape(Capsule(style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelButtonStyle())
             }
 
             HStack(spacing: 8) {
@@ -1186,7 +1180,7 @@ struct MenuBarPanelView: View {
             )
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle(pressScale: 0.92))
     }
 
     /// Preview-style action for testing one of the placeholder sound families.
@@ -1228,7 +1222,7 @@ struct MenuBarPanelView: View {
             )
             .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle())
     }
 
     /// Formats seconds as a concise localized duration for panel rows.
@@ -1263,6 +1257,58 @@ struct MenuBarPanelView: View {
     /// Reports the currently selected panel height so AppKit can keep the menu item in sync.
     private func reportPanelHeight(animated: Bool) {
         model.onPanelHeightChange?(panelHeight, animated)
+    }
+}
+
+/// Shared button style for all panel interactive controls.
+/// Scales down on press (physical "push in"), scales up slightly on hover, haptic on press.
+private struct PanelButtonStyle: ButtonStyle {
+    var pressScale: CGFloat = 0.94
+    var isEnabled: Bool = true
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .modifier(PanelInteractionModifier(
+                isPressed: configuration.isPressed,
+                pressScale: pressScale,
+                isEnabled: isEnabled
+            ))
+    }
+}
+
+private struct PanelInteractionModifier: ViewModifier {
+    let isPressed: Bool
+    let pressScale: CGFloat
+    let isEnabled: Bool
+    @State private var isHovered = false
+    @State private var displayPressed = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(
+                isEnabled
+                    ? (displayPressed ? pressScale : (isHovered ? 1.045 : 1.0))
+                    : 1.0
+            )
+            .brightness(isEnabled && isHovered && !displayPressed ? 0.08 : 0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.68), value: displayPressed)
+            .animation(.easeOut(duration: 0.13), value: isHovered)
+            .onHover { hovering in
+                guard isEnabled else { return }
+                isHovered = hovering
+            }
+            .onChange(of: isPressed) { pressed in
+                guard isEnabled else { return }
+                if pressed {
+                    displayPressed = true
+                    NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                } else {
+                    // Hold the pressed visual for ≥80ms so trackpad taps are always visible
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                        displayPressed = false
+                    }
+                }
+            }
     }
 }
 
