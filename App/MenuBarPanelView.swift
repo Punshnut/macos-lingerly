@@ -124,12 +124,12 @@ final class MenuBarPanelViewModel: ObservableObject {
 }
 
 struct MenuBarPanelView: View {
-    static let panelWidth: CGFloat = 396
-    static let defaultPanelHeight: CGFloat = 460
-    private static let chromeHeight: CGFloat = 178
-    private static let rhythmContentHeight: CGFloat = 256
-    private static let soundsContentHeight: CGFloat = 230
-    private static let settingsContentHeight: CGFloat = 282
+    static let panelWidth: CGFloat = 400
+    static let defaultPanelHeight: CGFloat = 494
+    private static let chromeHeight: CGFloat = 196
+    private static let rhythmContentHeight: CGFloat = 272
+    private static let soundsContentHeight: CGFloat = 246
+    private static let settingsContentHeight: CGFloat = 298
 
     @ObservedObject var model: MenuBarPanelViewModel
     @State private var selectedTab: Tab = .rhythm
@@ -222,7 +222,7 @@ struct MenuBarPanelView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             controlsRow
             statusBar
             tabRow
@@ -238,10 +238,10 @@ struct MenuBarPanelView: View {
             }
             .frame(height: contentHeight, alignment: .top)
         }
-        .padding(.leading, 14)
-        .padding(.trailing, 14)
-        .padding(.bottom, 14)
-        .padding(.top, 6)
+        .padding(.leading, 16)
+        .padding(.trailing, 16)
+        .padding(.bottom, 16)
+        .padding(.top, 10)
         .frame(width: Self.panelWidth, height: panelHeight, alignment: .top)
         .background(panelBackdrop)
         .onAppear {
@@ -311,7 +311,7 @@ struct MenuBarPanelView: View {
                 Label(model.startStopTitle, systemImage: model.startStopSymbol)
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 11)
                     .foregroundStyle(.white)
             }
             .buttonStyle(PanelButtonStyle(pressScale: 0.96))
@@ -355,7 +355,7 @@ struct MenuBarPanelView: View {
                 tabButton(tab, title: tab.title)
             }
         }
-        .padding(4)
+        .padding(5)
         .background(
             Capsule(style: .continuous)
                 .fill(.white.opacity(0.18))
@@ -404,7 +404,7 @@ struct MenuBarPanelView: View {
     }
 
     private var rhythmTab: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             frostedIsland {
                 HStack(spacing: 8) {
                     presetButton(title: "20-20-20", presetID: "20-20-20")
@@ -503,7 +503,7 @@ struct MenuBarPanelView: View {
     }
 
     private var soundsTab: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             compactFrostedIsland {
                 soundCategoryBlock(
                     title: menuPanelL("menu.panel.sound.category.alerts", "Alerts"),
@@ -570,7 +570,7 @@ struct MenuBarPanelView: View {
     }
 
     private var settingsTab: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             frostedIsland {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                     settingTile(icon: "bolt.fill", title: menuPanelL("menu.panel.settings.active_time", "Active-time"), isOn: model.modeActiveEnabled) {
@@ -698,16 +698,16 @@ struct MenuBarPanelView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
         .background(
             ZStack {
                 GlassMaterialView(material: .hudWindow)
                 Color.white.opacity(0.08)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(.white.opacity(0.28), lineWidth: 0.7)
         )
     }
@@ -793,7 +793,7 @@ struct MenuBarPanelView: View {
         VStack(spacing: 6) {
             content()
         }
-        .padding(10)
+        .padding(12)
         .background(
             ZStack {
                 GlassMaterialView(material: .hudWindow)
@@ -803,10 +803,10 @@ struct MenuBarPanelView: View {
                     endPoint: .bottom
                 )
             }
-            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(.white.opacity(0.24), lineWidth: 0.7)
         )
         .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
@@ -817,7 +817,7 @@ struct MenuBarPanelView: View {
         VStack(spacing: 6) {
             content()
         }
-        .padding(8)
+        .padding(10)
         .background(
             ZStack {
                 GlassMaterialView(material: .hudWindow)
@@ -827,10 +827,10 @@ struct MenuBarPanelView: View {
                     endPoint: .bottom
                 )
             }
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(.white.opacity(0.24), lineWidth: 0.7)
         )
         .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)

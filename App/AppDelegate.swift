@@ -329,7 +329,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         vibrancy.wantsLayer = true
         panel.contentView = vibrancy
         // Set layer properties after the view enters the window hierarchy so the layer is stable.
-        vibrancy.layer?.cornerRadius = 8
+        vibrancy.layer?.cornerRadius = 16
+        vibrancy.layer?.cornerCurve = .continuous
         vibrancy.layer?.masksToBounds = true
 
         // Hosting view is a subview OF vibrancy — not a sibling — so .withinWindow compositing works correctly.
