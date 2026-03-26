@@ -364,7 +364,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let fullHeight = controlPanelHeight
         let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
         var x = buttonRect.midX - fullWidth / 2
-        let y = buttonRect.minY - fullHeight - 4
+        let y = buttonRect.minY - fullHeight - 8
 
         if let screen = NSScreen.screens.first(where: { $0.frame.contains(buttonRect.origin) }) ?? NSScreen.main {
             x = max(screen.visibleFrame.minX + 4, min(x, screen.visibleFrame.maxX - fullWidth - 4))
