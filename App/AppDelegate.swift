@@ -53,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Boots the menu bar UI and starts the timing engine.
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        CrashLoopDetector.recordLaunchAndCheck()
         configureStatusItem()
         hotkeyManager = GlobalHotkeyManager { [weak self] action in
             self?.handleHotkeyAction(action)
