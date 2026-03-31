@@ -329,10 +329,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         vibrancy.state = .active
         vibrancy.wantsLayer = true
         panel.contentView = vibrancy
-        // Set layer properties after the view enters the window hierarchy so the layer is stable.
-        vibrancy.layer?.cornerRadius = 16
-        vibrancy.layer?.cornerCurve = .continuous
-        vibrancy.layer?.masksToBounds = true
+
+        // Use maskImage (official NSVisualEffectView API) instead of layer.cornerRadius + masksToBounds.
+        // The layer approach doesn't reliably clip the vibrancy material itself — it only clips CALayer
+        // sublayers — which causes white corner bleed on external displays and after restarts.
+        // maskImage clips the entire material rendering pipeline and auto-scales via capInsets.
+        let cornerRadius: CGFloat = 16
+        let maskImage: NSImage = {
+            let size = NSSize(width: cornerRadius * 2 + 1, height: cornerRadius * 2 + 1)
+            let img = NSImage(size: size, flipped: false) { rect in
+                NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius).fill()
+                return true
+            }
+            img.capInsets = NSEdgeInsets(top: cornerRadius, left: cornerRadius, bottom: cornerRadius, right: cornerRadius)
+            img.resizingMode = .stretch
+            return img
+        }()
+        vibrancy.maskImage = maskImage
 
         // Hosting view is a subview OF vibrancy — not a sibling — so .withinWindow compositing works correctly.
         configureControlPanelCallbacks()
@@ -341,8 +354,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         hostingView.frame = vibrancy.bounds
         hostingView.autoresizingMask = [.width, .height]
         hostingView.wantsLayer = true
-        hostingView.layer?.backgroundColor = .clear
         vibrancy.addSubview(hostingView)
+        // Set layer properties after addSubview so the layer is guaranteed to exist.
+        hostingView.layer?.backgroundColor = .clear
         panelHostingView = hostingView
 
         controlPanelViewModel.onPanelHeightChange = { [weak self, weak panel] height, animated in
