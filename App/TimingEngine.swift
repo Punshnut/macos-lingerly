@@ -29,6 +29,14 @@ final class TimingEngine {
     private let activityMonitor: ActivityMonitor
     private var config: Configuration
 
+    /// Desired interval between ticks. Changes take effect on the next tick restart.
+    var tickInterval: TimeInterval = 1 {
+        didSet {
+            guard oldValue != tickInterval, state == .running, !isPaused else { return }
+            startTicking()
+        }
+    }
+
     private var tickTimer: Timer?
     private var dueTimer: Timer?
     private var breakTimer: Timer?
@@ -80,15 +88,16 @@ final class TimingEngine {
         state = .idle
     }
 
-    /// Starts the 1-second tick loop.
+    /// Starts the tick loop at the current tick interval.
     private func startTicking() {
         lastTickDate = Date()
         tickTimer?.invalidate()
-        tickTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.tick()
-            }
+        let t = Timer.scheduledTimer(withTimeInterval: tickInterval, repeats: true) { [weak self] _ in
+            self?.tick()
         }
+        // Use proportional tolerance for coalescing: tight for 1s foreground, generous for background.
+        t.tolerance = tickInterval == 1 ? 0.05 : 0.5
+        tickTimer = t
     }
 
     /// Accumulates elapsed time and triggers breaks as needed.

@@ -209,6 +209,11 @@ final class AppStateController {
         onStateChange?(state)
     }
 
+    /// Sets the tick interval on the underlying engine (e.g., 1s for foreground, 5s for background).
+    func setTickInterval(_ interval: TimeInterval) {
+        engine.tickInterval = interval
+    }
+
     /// Stops timing and clears overlays/timers.
     func stop() {
         guard isRunning else { return }

@@ -41,6 +41,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var settingsWindow: NSWindow?
     private var menuUpdateTimer: DispatchSourceTimer?
     private var isMenuOpen = false
+    private var lastMenuBarTitle: String = ""
+    private lazy var menuBarTitleAttributes: [NSAttributedString.Key: Any] = {
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
+        return [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+            .paragraphStyle: style
+        ]
+    }()
     private var hotkeyManager: GlobalHotkeyManager?
     private var defaultsObserver: NSObjectProtocol?
     private let settingsMenuShortcut = ","
@@ -600,7 +609,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// Copies live app/settings values into the menu panel view model.
-    private func refreshControlPanelModel(statusTitle: String? = nil) {
+    private func refreshControlPanelModel(statusTitle: String? = nil, display: AppStateController.NextBreakDisplay? = nil) {
         launchAtLoginController.refresh()
         controlPanelViewModel.isRunning = appState.isRunning
         controlPanelViewModel.isPaused = appState.isPaused
@@ -618,7 +627,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         controlPanelViewModel.smartPauseResumeBehavior = settingsStore.smartPauseResumeBehavior
         controlPanelViewModel.selectedPresetID = selectedPresetID()
 
-        switch appState.nextBreakDisplay(at: Date()) {
+        switch display ?? appState.nextBreakDisplay(at: Date()) {
         case .inactive:
             controlPanelViewModel.statusKind = .idle
         case .paused:
@@ -656,7 +665,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func startMenuUpdateTimer() {
         guard menuUpdateTimer == nil else { return }
         let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now(), repeating: 1, leeway: .milliseconds(200))
+        timer.schedule(deadline: .now(), repeating: 1, leeway: .milliseconds(500))
         timer.setEventHandler { [weak self] in
             self?.updateCountdownTitle()
         }
@@ -671,6 +680,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else {
             stopMenuUpdateTimer()
         }
+        refreshTickInterval()
+    }
+
+    /// Switches the engine to a slower background tick (5 s) when no countdown is visible
+    /// and active-time mode is off, reducing CPU wakeups in background.
+    private func refreshTickInterval() {
+        let isBackground = !controlPanelViewModel.isPanelVisible && !isMenuOpen
+        let needsFineGrained = settingsStore.modeActiveEnabled
+        appState.setTickInterval(isBackground && !needsFineGrained ? 5 : 1)
     }
 
     /// Returns true when the control panel, footer menu, or menu bar title needs a live countdown.
@@ -693,20 +711,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Updates countdown text for both the panel status bar and menu bar title.
     private func updateCountdownTitle() {
-        let title = menuCountdownTitle(at: Date())
-        refreshControlPanelModel(statusTitle: title)
-        let menuBarTitle = menuBarCountdownTitle(from: title)
+        let display = appState.nextBreakDisplay(at: Date())
+        let title = menuCountdownTitle(display: display)
+
+        if controlPanelViewModel.isPanelVisible || isMenuOpen {
+            refreshControlPanelModel(statusTitle: title, display: display)
+        }
+
+        let menuBarTitle = menuBarCountdownTitle(display: display)
         updateMenuBarButtonTitle(menuBarTitle)
         refreshMenuUpdateTimerIfNeeded()
     }
 
     /// Builds the human-readable status line shown in the control panel.
-    private func menuCountdownTitle(at date: Date) -> String {
-        switch appState.nextBreakDisplay(at: date) {
+    private func menuCountdownTitle(display: AppStateController.NextBreakDisplay) -> String {
+        switch display {
         case .inactive:
             return String(localized: "Timer stopped")
         case .paused:
-            let remaining = appState.pausedCountdownSeconds(at: date) ?? 0
+            let remaining = appState.pausedCountdownSeconds(at: Date()) ?? 0
             let countdown = AppStateController.formattedCountdown(remaining)
             let pausedTitle = String(format: String(localized: "Timer paused at %@"), countdown)
             return decorateForSmartPauseIfNeeded(pausedTitle)
@@ -745,10 +768,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// Computes the compact menu bar timer title based on current display state.
-    private func menuBarCountdownTitle(from _: String) -> String {
-        let enabled = settingsStore.menuBarTimerEnabled
-        guard enabled && appState.isRunning else { return "" }
-        switch appState.nextBreakDisplay(at: Date()) {
+    private func menuBarCountdownTitle(display: AppStateController.NextBreakDisplay) -> String {
+        guard settingsStore.menuBarTimerEnabled && appState.isRunning else { return "" }
+        switch display {
         case .running(let seconds):
             return AppStateController.formattedCountdown(seconds)
         case .muted(let seconds):
@@ -771,20 +793,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Updates the menu bar button title using monospaced digits for stability.
     private func updateMenuBarButtonTitle(_ title: String) {
+        guard title != lastMenuBarTitle else { return }
+        lastMenuBarTitle = title
         guard let button = statusItem?.button else { return }
         button.title = ""
         guard !title.isEmpty else {
             button.attributedTitle = NSAttributedString(string: "")
             return
         }
-
-        let style = NSMutableParagraphStyle()
-        style.alignment = .center
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
-            .paragraphStyle: style
-        ]
-        button.attributedTitle = NSAttributedString(string: title, attributes: attributes)
+        button.attributedTitle = NSAttributedString(string: title, attributes: menuBarTitleAttributes)
     }
 
     /// Refreshes key equivalents and countdown while the footer menu is open.
