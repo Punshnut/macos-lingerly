@@ -62,9 +62,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.4.0</string>
+	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>0.4.0</string>
+	<string>5</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
@@ -78,8 +78,8 @@
 	<key>NSSupportsAutomaticTermination</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string></string>
+	<string>https://raw.githubusercontent.com/Punshnut/macos-lingerly/dev/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string></string>
+	<string>0cLQL6f2MSv7lqETBkHf8VuLfrCH/RaSeU0GVKvVfBw=</string>
 </dict>
 </plist>

@@ -1772,11 +1772,58 @@ private struct AutomationActionRow: View {
 }
 
 private struct AboutMeView: View {
+    private let version = AppVersion.current
+
     var body: some View {
         SettingsScrollView(
             title: l("settings.about.title"),
             subtitle: l("settings.about.subtitle")
         ) {
+            SettingsCard(
+                String(localized: "settings.about.version.card.title", defaultValue: "Version"),
+                subtitle: String(
+                    localized: "settings.about.version.card.subtitle",
+                    defaultValue: "Marketing version with the manual Sparkle release build."
+                )
+            ) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(
+                            String(localized: "settings.about.version.label", defaultValue: "Current release")
+                        )
+                        .font(.callout.weight(.semibold))
+                        if let buildDisplay = version.buildDisplay {
+                            Text(
+                                String(
+                                    format: String(
+                                        localized: "settings.about.version.build_format",
+                                        defaultValue: "Build %@"
+                                    ),
+                                    buildDisplay
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+                        Text(
+                            String(
+                                format: String(
+                                    localized: "settings.about.version.bundle_format",
+                                    defaultValue: "Sparkle bundle version %@"
+                                ),
+                                version.bundleVersion
+                            )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text(version.displayVersion)
+                        .font(.title3.weight(.semibold))
+                        .monospacedDigit()
+                }
+            }
+
             SettingsCard(l("settings.about.card.title")) {
                 HStack(alignment: .center, spacing: 16) {
                     ZStack {
