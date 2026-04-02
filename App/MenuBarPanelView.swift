@@ -125,8 +125,8 @@ final class MenuBarPanelViewModel: ObservableObject {
 
 struct MenuBarPanelView: View {
     static let panelWidth: CGFloat = 400
-    static let defaultPanelHeight: CGFloat = 494
-    private static let chromeHeight: CGFloat = 196
+    static let defaultPanelHeight: CGFloat = 500
+    private static let chromeHeight: CGFloat = 202
     private static let rhythmContentHeight: CGFloat = 272
     private static let soundsContentHeight: CGFloat = 246
     private static let settingsContentHeight: CGFloat = 298
@@ -241,7 +241,7 @@ struct MenuBarPanelView: View {
         .padding(.leading, 16)
         .padding(.trailing, 16)
         .padding(.bottom, 16)
-        .padding(.top, 10)
+        .padding(.top, 16)
         .frame(width: Self.panelWidth, height: panelHeight, alignment: .top)
         .background(panelBackdrop)
         .onAppear {
@@ -404,7 +404,7 @@ struct MenuBarPanelView: View {
     }
 
     private var rhythmTab: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 0) {
             frostedIsland {
                 HStack(spacing: 8) {
                     presetButton(title: "20-20-20", presetID: "20-20-20")
@@ -429,6 +429,8 @@ struct MenuBarPanelView: View {
                     }
                 }
             }
+
+            Spacer(minLength: 0)
 
             frostedIsland {
                 valueAdjustRow(
@@ -483,6 +485,8 @@ struct MenuBarPanelView: View {
                 )
             }
 
+            Spacer(minLength: 0)
+
             frostedIsland {
                 HStack(spacing: 8) {
                     quickShiftButton("-15", action: { model.onBringFifteenMinutesCloser?() }, isEnabled: model.isRunning)
@@ -503,7 +507,7 @@ struct MenuBarPanelView: View {
     }
 
     private var soundsTab: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 0) {
             compactFrostedIsland {
                 soundCategoryBlock(
                     title: menuPanelL("menu.panel.sound.category.alerts", "Alerts"),
@@ -526,6 +530,8 @@ struct MenuBarPanelView: View {
                     }
                 }
             }
+
+            Spacer(minLength: 0)
 
             compactFrostedIsland {
                 soundCategoryBlock(
@@ -550,6 +556,8 @@ struct MenuBarPanelView: View {
                 }
             }
 
+            Spacer(minLength: 0)
+
             compactFrostedIsland {
                 HStack(spacing: 8) {
                     soundPreviewButton(
@@ -570,7 +578,7 @@ struct MenuBarPanelView: View {
     }
 
     private var settingsTab: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             frostedIsland {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                     settingTile(icon: "bolt.fill", title: menuPanelL("menu.panel.settings.active_time", "Active-time"), isOn: model.modeActiveEnabled) {
@@ -600,6 +608,8 @@ struct MenuBarPanelView: View {
                 }
             }
 
+            Spacer(minLength: 0)
+
             frostedIsland {
                 Text(menuPanelL("menu.panel.settings.start_resume_behavior", "Start/Resume button behavior"))
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
@@ -623,6 +633,8 @@ struct MenuBarPanelView: View {
                     }
                 }
             }
+
+            Spacer(minLength: 0)
 
             frostedIsland {
                 valueAdjustRow(

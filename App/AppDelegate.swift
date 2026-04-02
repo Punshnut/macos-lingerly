@@ -23,9 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let controlPanelViewModel = MenuBarPanelViewModel()
     private let menuBarTimerFixedWidth: CGFloat = {
         let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
-        let sample = "88:88:88" as NSString
+        let sample = "88:88" as NSString
         let textWidth = ceil(sample.size(withAttributes: [.font: font]).width)
-        return NSStatusItem.squareLength + textWidth + 18
+        return NSStatusItem.squareLength + textWidth + 26
     }()
     private lazy var updaterController: SPUStandardUpdaterController? = {
         guard Self.isSparkleConfigurationValid() else { return nil }
