@@ -28,7 +28,7 @@ struct OnboardingView: View {
     /// Renders the current onboarding step with navigation controls.
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(String(localized: "Onboarding Title"))
+            Text(String(localized: "OnboardingWelcomeTitle"))
                 .font(.title2.weight(.semibold))
 
             stepView()
@@ -36,7 +36,7 @@ struct OnboardingView: View {
 
             HStack {
                 if step > 0 {
-                    Button(String(localized: "Back")) {
+                    Button(String(localized: "NavBackButton")) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             step -= 1
                         }
@@ -45,7 +45,7 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                Button(step == 1 ? String(localized: "Finish") : String(localized: "Next")) {
+                Button(step == 1 ? String(localized: "NavFinishButton") : String(localized: "NavNextButton")) {
                     handleNext()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -70,34 +70,34 @@ struct OnboardingView: View {
     /// Step 1: choose behavior while fullscreen apps are active.
     private var fullscreenStep: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "Onboarding Fullscreen Title"))
+            Text(String(localized: "OnboardingFullscreenTitle"))
                 .font(.headline)
-            Text(String(localized: "Onboarding Fullscreen Subtitle"))
+            Text(String(localized: "OnboardingFullscreenSubtitle"))
                 .foregroundStyle(.secondary)
 
             RadioRow(
-                title: String(localized: "Onboarding Fullscreen Notify"),
-                subtitle: String(localized: "Onboarding Fullscreen Notify Detail"),
+                title: String(localized: "OnboardingFullscreenNotifyOption"),
+                subtitle: String(localized: "OnboardingFullscreenNotifyDetail"),
                 isSelected: fullscreenBehavior == .notify
             ) {
                 fullscreenBehaviorRaw = FullscreenBehavior.notify.rawValue
             }
 
             RadioRow(
-                title: String(localized: "Onboarding Fullscreen Interrupt"),
-                subtitle: String(localized: "Onboarding Fullscreen Interrupt Detail"),
+                title: String(localized: "OnboardingFullscreenInterruptOption"),
+                subtitle: String(localized: "OnboardingFullscreenInterruptDetail"),
                 isSelected: fullscreenBehavior == .interrupt
             ) {
                 fullscreenBehaviorRaw = FullscreenBehavior.interrupt.rawValue
             }
 
-            Toggle(String(localized: "settings.break_prompt.notification_only.title"), isOn: $alwaysNotificationOnly)
-            Text(String(localized: "settings.break_prompt.notification_only.subtitle"))
+            Toggle(String(localized: "BreakPromptNotifOnlyTitle"), isOn: $alwaysNotificationOnly)
+            Text(String(localized: "BreakPromptNotifOnlySubtitle"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Toggle(String(localized: "Onboarding Lock Screen"), isOn: $allowLockScreen)
-            Text(String(localized: "Onboarding Lock Screen Detail"))
+            Toggle(String(localized: "OnboardingLockScreenToggle"), isOn: $allowLockScreen)
+            Text(String(localized: "OnboardingLockScreenDetail"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -106,22 +106,22 @@ struct OnboardingView: View {
     /// Step 2: select a timing preset.
     private var presetStep: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "Onboarding Preset Title"))
+            Text(String(localized: "OnboardingPresetTitle"))
                 .font(.headline)
-            Text(String(localized: "Onboarding Preset Subtitle"))
+            Text(String(localized: "OnboardingPresetSubtitle"))
                 .foregroundStyle(.secondary)
 
             RadioRow(
-                title: String(localized: "Onboarding Preset 20"),
-                subtitle: String(localized: "Onboarding Preset 20 Detail"),
+                title: String(localized: "OnboardingPreset2020Option"),
+                subtitle: String(localized: "OnboardingPreset2020Detail"),
                 isSelected: preset == .twentyTwentyTwenty
             ) {
                 presetRaw = ReminderPreset.twentyTwentyTwenty.rawValue
             }
 
             RadioRow(
-                title: String(localized: "Onboarding Preset 45"),
-                subtitle: String(localized: "Onboarding Preset 45 Detail"),
+                title: String(localized: "OnboardingPreset4515Option"),
+                subtitle: String(localized: "OnboardingPreset4515Detail"),
                 isSelected: preset == .fortyFiveFifteen
             ) {
                 presetRaw = ReminderPreset.fortyFiveFifteen.rawValue

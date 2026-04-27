@@ -424,10 +424,10 @@ final class AppStateController {
     func smartPauseCode() -> String? {
         guard isRunning, isSmartPaused else { return nil }
 
-        let baseCode = String(localized: "smart_pause.code.base", defaultValue: "P")
-        let mediaCode = String(localized: "smart_pause.code.media", defaultValue: "M")
-        let appsCode = String(localized: "smart_pause.code.apps", defaultValue: "X")
-        let scheduleCode = String(localized: "smart_pause.code.schedule", defaultValue: "S")
+        let baseCode = String(localized: "SmartPauseCodeBase", defaultValue: "P")
+        let mediaCode = String(localized: "SmartPauseCodeMedia", defaultValue: "M")
+        let appsCode = String(localized: "SmartPauseCodeApps", defaultValue: "X")
+        let scheduleCode = String(localized: "SmartPauseCodeSchedule", defaultValue: "S")
 
         var reasons = ""
         if isMediaConditionActive { reasons += mediaCode }

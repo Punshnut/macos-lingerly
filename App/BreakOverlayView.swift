@@ -72,18 +72,18 @@ struct BreakOverlayView: View {
                     VStack(spacing: 6) {
                         if overlayStyle == .classic {
                             ZStack {
-                                Text(String(localized: "Overlay Title"))
+                                Text(String(localized: "OverlayTitle"))
                                     .font(titleFont)
                                     .foregroundStyle(Color.white.opacity(0.22))
                                     .offset(x: 0.6, y: 0.6)
                                     .blur(radius: 0.8)
-                                Text(String(localized: "Overlay Title"))
+                                Text(String(localized: "OverlayTitle"))
                                     .font(titleFont)
                                     .foregroundStyle(Color.white.opacity(0.95))
                             }
                             .shadow(color: Color.black.opacity(0.22), radius: 6, x: 0, y: 3)
                         } else {
-                            Text(String(localized: "Overlay Title"))
+                            Text(String(localized: "OverlayTitle"))
                                 .font(titleFont)
                                 .foregroundStyle(Color.white.opacity(0.96))
                         }
@@ -113,7 +113,7 @@ struct BreakOverlayView: View {
                         .controlSize(.large)
                         .tint(Color.white.opacity(0.22))
                         .foregroundStyle(Color.white)
-                        .accessibilityHint(String(localized: "Snooze"))
+                        .accessibilityHint(String(localized: "ActionSnoozeButton"))
                         .accessibilitySortPriority(3)
                         .focusable(true)
 
@@ -123,21 +123,21 @@ struct BreakOverlayView: View {
                         isExiting: animationState.isExiting || exitDimming,
                         reduceMotion: reduceMotion
                     )
-                        .accessibilityLabel(String(localized: "Overlay Hold To Skip"))
-                        .accessibilityHint(String(localized: "Overlay Hold To Skip Hint"))
+                        .accessibilityLabel(String(localized: "OverlayHoldToSkipLabel"))
+                        .accessibilityHint(String(localized: "OverlayHoldToSkipHint"))
                         .accessibilitySortPriority(2)
                         .focusable(false)
 
                     if showLockScreen {
-                        Button(String(localized: "Overlay Lock Screen"), action: onLockScreen)
+                        Button(String(localized: "OverlayLockScreenButton"), action: onLockScreen)
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
                             .tint(Color.white.opacity(0.32))
                             .foregroundStyle(Color.white)
-                            .accessibilityHint(String(localized: "Overlay Lock Screen Detail"))
+                            .accessibilityHint(String(localized: "OverlayLockScreenDetail"))
                             .accessibilitySortPriority(1)
                             .focusable(true)
-                        Text(String(localized: "Overlay Lock Screen Detail"))
+                        Text(String(localized: "OverlayLockScreenDetail"))
                             .font(.title3)
                             .foregroundStyle(Color.white.opacity(0.74))
                     }
@@ -250,7 +250,7 @@ struct BreakOverlayView: View {
     /// Produces the localized snooze button label.
     private var snoozeLabel: String {
         let minutes = max(snoozeMinutes, 1)
-        return String.localizedStringWithFormat(String(localized: "Snooze 1 min"), minutes)
+        return String.localizedStringWithFormat(String(localized: "StatusSnooze1MinFormat"), minutes)
     }
 
     @MainActor
@@ -361,7 +361,7 @@ private struct OverlayCountdownRenderer: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(String(localized: "Overlay Time Left"))
+            Text(String(localized: "OverlayTimeLeftLabel"))
                 .font(.headline)
                 .foregroundStyle(Color.white.opacity(0.72))
             CountdownView(
@@ -371,7 +371,7 @@ private struct OverlayCountdownRenderer: View {
             )
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(String(localized: "Overlay Time Left")) \(BreakOverlayView.formattedRemaining(remainingSeconds))")
+        .accessibilityLabel("\(String(localized: "OverlayTimeLeftLabel")) \(BreakOverlayView.formattedRemaining(remainingSeconds))")
         .onAppear {
             syncRemainingSeconds(for: Date())
         }
@@ -801,7 +801,7 @@ private struct HoldToSkipButton: View {
             .scaleEffect(isCompleting ? 0.06 : 1)
             .opacity(isCompleting ? 0 : 1)
             .blur(radius: isCompleting ? 6 : 0)
-            Text(String(localized: "Overlay Hold To Skip"))
+            Text(String(localized: "OverlayHoldToSkipLabel"))
                 .font(.title2)
                 .foregroundStyle(Color.white)
         }

@@ -77,7 +77,7 @@ struct SnoozeBreakIntent: AppIntent {
 }
 
 struct ResetTimerIntent: AppIntent {
-    static let title: LocalizedStringResource = "Reset Timer"
+    static let title: LocalizedStringResource = "ActionsRestartTimerButton"
     static let description = IntentDescription("Resets the current timer cycle.")
     static let openAppWhenRun = true
 
@@ -136,7 +136,7 @@ struct LingerlyShortcutsProvider: AppShortcutsProvider {
                 "Reset \\(.applicationName) timer",
                 "Reset timer in \\(.applicationName)"
             ],
-            shortTitle: "Reset Timer",
+            shortTitle: "ActionsRestartTimerButton",
             systemImageName: "arrow.counterclockwise.circle.fill"
         )
     }

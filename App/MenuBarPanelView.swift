@@ -45,21 +45,21 @@ final class MenuBarPanelViewModel: ObservableObject {
         var subtitle: String {
             switch self {
             case .idle:
-                return menuPanelL("menu.panel.status.subtitle.idle", "Reminders are currently off")
+                return menuPanelL("PanelStatusIdleSubtitle", "Reminders are currently off")
             case .running:
-                return menuPanelL("menu.panel.status.subtitle.running", "Lingerly rhythm is active")
+                return menuPanelL("PanelStatusRunningSubtitle", "Lingerly rhythm is active")
             case .paused:
-                return menuPanelL("menu.panel.status.subtitle.paused", "Timer is paused")
+                return menuPanelL("PanelStatusPausedSubtitle", "Timer is paused")
             case .muted:
-                return menuPanelL("menu.panel.status.subtitle.muted", "Muted while timer keeps counting")
+                return menuPanelL("PanelStatusMutedSubtitle", "Muted while timer keeps counting")
             case .cooldown:
-                return menuPanelL("menu.panel.status.subtitle.cooldown", "Auto-pause cooldown in progress")
+                return menuPanelL("PanelStatusCooldownSubtitle", "Auto-pause cooldown in progress")
             case .snoozing:
-                return menuPanelL("menu.panel.status.subtitle.snoozing", "Snooze is active")
+                return menuPanelL("PanelStatusSnoozingSubtitle", "Snooze is active")
             case .breakDue:
-                return menuPanelL("menu.panel.status.subtitle.break_due", "Break prompt is waiting")
+                return menuPanelL("PanelStatusBreakDueSubtitle", "Break prompt is waiting")
             case .onBreak:
-                return menuPanelL("menu.panel.status.subtitle.on_break", "Break session in progress")
+                return menuPanelL("PanelStatusOnBreakSubtitle", "Break session in progress")
             }
         }
     }
@@ -114,8 +114,8 @@ final class MenuBarPanelViewModel: ObservableObject {
 
     var startStopTitle: String {
         (!isRunning || isPaused)
-            ? menuPanelL("menu.panel.controls.start", "Start")
-            : menuPanelL("menu.panel.controls.pause", "Pause")
+            ? menuPanelL("PanelControlStartButton", "Start")
+            : menuPanelL("PanelControlPauseButton", "Pause")
     }
 
     var startStopSymbol: String {
@@ -150,9 +150,9 @@ struct MenuBarPanelView: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .rhythm: return menuPanelL("menu.panel.tab.lingerly", "Lingerly")
-            case .settings: return menuPanelL("menu.panel.tab.settings", "Settings")
-            case .sounds: return menuPanelL("menu.panel.tab.sounds", "Sounds")
+            case .rhythm: return menuPanelL("PanelTabLingerlyLabel", "Lingerly")
+            case .settings: return menuPanelL("PanelTabSettingsLabel", "AppSettingsWindowTitle")
+            case .sounds: return menuPanelL("PanelTabSoundsLabel", "Sounds")
             }
         }
     }
@@ -166,9 +166,9 @@ struct MenuBarPanelView: View {
 
         var title: String {
             switch self {
-            case .bell: return menuPanelL("menu.panel.sound.alert.bell", "Bell")
-            case .glass: return menuPanelL("menu.panel.sound.alert.glass", "Glass")
-            case .chime: return menuPanelL("menu.panel.sound.alert.chime", "Chime")
+            case .bell: return menuPanelL("PanelSoundAlertBellLabel", "Bell")
+            case .glass: return menuPanelL("PanelSoundAlertGlassLabel", "Glass")
+            case .chime: return menuPanelL("PanelSoundAlertChimeLabel", "Chime")
             }
         }
 
@@ -190,9 +190,9 @@ struct MenuBarPanelView: View {
 
         var title: String {
             switch self {
-            case .waves: return menuPanelL("menu.panel.sound.background.waves", "Waves")
-            case .rain: return menuPanelL("menu.panel.sound.background.rain", "Rain")
-            case .forest: return menuPanelL("menu.panel.sound.background.forest", "Forest")
+            case .waves: return menuPanelL("PanelSoundBackgroundWavesLabel", "Waves")
+            case .rain: return menuPanelL("PanelSoundBackgroundRainLabel", "Rain")
+            case .forest: return menuPanelL("PanelSoundBackgroundForestLabel", "Forest")
             }
         }
 
@@ -409,19 +409,19 @@ struct MenuBarPanelView: View {
                 HStack(spacing: 8) {
                     presetButton(title: "20-20-20", presetID: "20-20-20")
                     presetButton(title: "45-15", presetID: "45-15")
-                    presetTag(title: menuPanelL("menu.panel.preset.custom", "Custom"), isSelected: model.selectedPresetID == "custom")
+                    presetTag(title: menuPanelL("PanelPresetCustomLabel", "Custom"), isSelected: model.selectedPresetID == "custom")
                 }
 
                 HStack(spacing: 8) {
                     soundQuickToggle(
-                        title: menuPanelL("menu.panel.sound.quick.alerts", "Alerts"),
+                        title: menuPanelL("PanelSoundQuickAlertsLabel", "Alerts"),
                         systemImage: "bell.badge.fill",
                         isSelected: alertSoundsEnabled
                     ) {
                         alertSoundsEnabled.toggle()
                     }
                     soundQuickToggle(
-                        title: menuPanelL("menu.panel.sound.quick.background", "Background"),
+                        title: menuPanelL("PanelSoundQuickBackgroundLabel", "Background"),
                         systemImage: "waveform",
                         isSelected: backgroundPauseSoundsEnabled
                     ) {
@@ -434,7 +434,7 @@ struct MenuBarPanelView: View {
 
             frostedIsland {
                 valueAdjustRow(
-                    title: menuPanelL("menu.panel.timer.focus_interval", "Focus interval"),
+                    title: menuPanelL("PanelTimerFocusIntervalLabel", "Focus interval"),
                     valueText: minutesText(model.intervalMinutes),
                     canDecrease: model.intervalMinutes > 1,
                     canIncrease: model.intervalMinutes < 180,
@@ -451,7 +451,7 @@ struct MenuBarPanelView: View {
                 )
 
                 valueAdjustRow(
-                    title: menuPanelL("menu.panel.timer.break_length", "Break length"),
+                    title: menuPanelL("PanelTimerBreakLengthLabel", "Break length"),
                     valueText: formatDuration(seconds: model.breakDurationSeconds),
                     canDecrease: model.breakDurationSeconds > 5,
                     canIncrease: model.breakDurationSeconds < 1800,
@@ -468,7 +468,7 @@ struct MenuBarPanelView: View {
                 )
 
                 valueAdjustRow(
-                    title: menuPanelL("menu.panel.timer.snooze", "Snooze"),
+                    title: menuPanelL("PanelTimerSnoozeLabel", "ActionSnoozeButton"),
                     valueText: minutesText(model.snoozeMinutes),
                     canDecrease: model.snoozeMinutes > 1,
                     canIncrease: model.snoozeMinutes < 60,
@@ -498,9 +498,9 @@ struct MenuBarPanelView: View {
                 }
 
                 HStack(spacing: 8) {
-                    actionButton(menuPanelL("menu.panel.action.break_now", "Break now"), action: { model.onTakeBreakNow?() }, isEnabled: model.isRunning)
-                    actionButton(menuPanelL("menu.panel.action.skip_break", "Skip break"), action: { model.onSkipBreak?() }, isEnabled: model.isRunning)
-                    actionButton(menuPanelL("menu.panel.action.restart", "Restart"), action: { model.onResetTimer?() }, isEnabled: model.isRunning)
+                    actionButton(menuPanelL("PanelActionBreakNowButton", "Break now"), action: { model.onTakeBreakNow?() }, isEnabled: model.isRunning)
+                    actionButton(menuPanelL("PanelActionSkipBreakButton", "Skip break"), action: { model.onSkipBreak?() }, isEnabled: model.isRunning)
+                    actionButton(menuPanelL("PanelActionRestartButton", "Restart"), action: { model.onResetTimer?() }, isEnabled: model.isRunning)
                 }
             }
         }
@@ -510,8 +510,8 @@ struct MenuBarPanelView: View {
         VStack(spacing: 0) {
             compactFrostedIsland {
                 soundCategoryBlock(
-                    title: menuPanelL("menu.panel.sound.category.alerts", "Alerts"),
-                    subtitle: menuPanelL("menu.panel.sound.category.alerts.subtitle", "Start and end cues"),
+                    title: menuPanelL("PanelSoundCategoryAlertsTitle", "Alerts"),
+                    subtitle: menuPanelL("PanelSoundCategoryAlertsSubtitle", "Start and end cues"),
                     systemImage: "bell.badge.fill",
                     tint: .orange,
                     isEnabled: alertSoundsEnabled,
@@ -535,8 +535,8 @@ struct MenuBarPanelView: View {
 
             compactFrostedIsland {
                 soundCategoryBlock(
-                    title: menuPanelL("menu.panel.sound.category.background", "Background"),
-                    subtitle: menuPanelL("menu.panel.sound.category.background.subtitle", "During the pause"),
+                    title: menuPanelL("PanelSoundCategoryBackgroundTitle", "Background"),
+                    subtitle: menuPanelL("PanelSoundCategoryBackgroundSubtitle", "During the pause"),
                     systemImage: "waveform",
                     tint: .cyan,
                     isEnabled: backgroundPauseSoundsEnabled,
@@ -561,13 +561,13 @@ struct MenuBarPanelView: View {
             compactFrostedIsland {
                 HStack(spacing: 8) {
                     soundPreviewButton(
-                        title: menuPanelL("menu.panel.sound.preview.alert", "Play Alert"),
+                        title: menuPanelL("PanelSoundPreviewAlertButton", "Play Alert"),
                         systemImage: "bell.fill"
                     ) {
                         alertSoundsEnabled = true
                     }
                     soundPreviewButton(
-                        title: menuPanelL("menu.panel.sound.preview.background", "Play Background"),
+                        title: menuPanelL("PanelSoundPreviewBackgroundButton", "Play Background"),
                         systemImage: "waveform"
                     ) {
                         backgroundPauseSoundsEnabled = true
@@ -581,27 +581,27 @@ struct MenuBarPanelView: View {
         VStack(spacing: 0) {
             frostedIsland {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                    settingTile(icon: "bolt.fill", title: menuPanelL("menu.panel.settings.active_time", "Active-time"), isOn: model.modeActiveEnabled) {
+                    settingTile(icon: "bolt.fill", title: menuPanelL("PanelSettingActiveTimeLabel", "Active-time"), isOn: model.modeActiveEnabled) {
                         model.modeActiveEnabled.toggle()
                         model.onSetModeActiveEnabled?(model.modeActiveEnabled)
                     }
-                    settingTile(icon: "power", title: menuPanelL("menu.panel.settings.launch_at_login", "Launch at login"), isOn: model.launchAtLoginEnabled) {
+                    settingTile(icon: "power", title: menuPanelL("PanelSettingLaunchAtLoginLabel", "Launch at login"), isOn: model.launchAtLoginEnabled) {
                         model.launchAtLoginEnabled.toggle()
                         model.onSetLaunchAtLoginEnabled?(model.launchAtLoginEnabled)
                     }
-                    settingTile(icon: "calendar", title: menuPanelL("menu.panel.settings.schedule", "Schedule"), isOn: model.modeScheduleEnabled) {
+                    settingTile(icon: "calendar", title: menuPanelL("PanelSettingScheduleLabel", "Schedule"), isOn: model.modeScheduleEnabled) {
                         model.modeScheduleEnabled.toggle()
                         model.onSetModeScheduleEnabled?(model.modeScheduleEnabled)
                     }
-                    settingTile(icon: "menubar.rectangle", title: menuPanelL("menu.panel.settings.menu_bar_timer", "Menu bar timer"), isOn: model.menuBarTimerEnabled) {
+                    settingTile(icon: "menubar.rectangle", title: menuPanelL("PanelSettingMenuBarTimerLabel", "Menu bar timer"), isOn: model.menuBarTimerEnabled) {
                         model.menuBarTimerEnabled.toggle()
                         model.onSetMenuBarTimerEnabled?(model.menuBarTimerEnabled)
                     }
-                    settingTile(icon: "play.circle", title: menuPanelL("menu.panel.settings.pause_on_media", "Pause on media"), isOn: model.mediaPauseEnabled) {
+                    settingTile(icon: "play.circle", title: menuPanelL("PanelSettingPauseOnMediaLabel", "Pause on media"), isOn: model.mediaPauseEnabled) {
                         model.mediaPauseEnabled.toggle()
                         model.onSetMediaPauseEnabled?(model.mediaPauseEnabled)
                     }
-                    settingTile(icon: "lock.open.trianglebadge.exclamationmark", title: menuPanelL("menu.panel.settings.reset_on_unlock", "Reset on unlock"), isOn: model.resetOnUnlock) {
+                    settingTile(icon: "lock.open.trianglebadge.exclamationmark", title: menuPanelL("PanelSettingResetOnUnlockLabel", "Reset on unlock"), isOn: model.resetOnUnlock) {
                         model.resetOnUnlock.toggle()
                         model.onSetResetOnUnlock?(model.resetOnUnlock)
                     }
@@ -611,21 +611,21 @@ struct MenuBarPanelView: View {
             Spacer(minLength: 0)
 
             frostedIsland {
-                Text(menuPanelL("menu.panel.settings.start_resume_behavior", "Start/Resume button behavior"))
+                Text(menuPanelL("PanelSettingStartResumeBehaviorLabel", "Start/Resume button behavior"))
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: 6) {
                     resumeStyleChip(
-                        title: menuPanelL("menu.panel.settings.resume_behavior.resume", "Resume"),
+                        title: menuPanelL("PanelSettingResumeBehaviorResumeOption", "Resume"),
                         isSelected: model.smartPauseResumeBehavior == .resumeTimer
                     ) {
                         model.smartPauseResumeBehavior = .resumeTimer
                         model.onSetSmartPauseResumeBehavior?(.resumeTimer)
                     }
                     resumeStyleChip(
-                        title: menuPanelL("menu.panel.settings.resume_behavior.reset", "Reset"),
+                        title: menuPanelL("PanelSettingResumeBehaviorResetOption", "Reset"),
                         isSelected: model.smartPauseResumeBehavior == .resetTimer
                     ) {
                         model.smartPauseResumeBehavior = .resetTimer
@@ -638,7 +638,7 @@ struct MenuBarPanelView: View {
 
             frostedIsland {
                 valueAdjustRow(
-                    title: menuPanelL("menu.panel.settings.smart_pause_cooldown", "Smart pause cooldown"),
+                    title: menuPanelL("PanelSettingSmartPauseCooldownLabel", "Smart pause cooldown"),
                     valueText: minutesText(model.smartPauseCooldownMinutes),
                     canDecrease: model.smartPauseCooldownMinutes > 1,
                     canIncrease: model.smartPauseCooldownMinutes < 5,
@@ -655,7 +655,7 @@ struct MenuBarPanelView: View {
                 )
 
                 valueAdjustRow(
-                    title: menuPanelL("menu.panel.settings.snooze_length", "Snooze length"),
+                    title: menuPanelL("PanelSettingSnoozeLengthLabel", "Snooze length"),
                     valueText: minutesText(model.snoozeMinutes),
                     canDecrease: model.snoozeMinutes > 1,
                     canIncrease: model.snoozeMinutes < 60,
@@ -1120,7 +1120,7 @@ struct MenuBarPanelView: View {
                     HStack(spacing: 5) {
                         Image(systemName: isEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
                             .font(.system(size: 10, weight: .semibold))
-                        Text(isEnabled ? menuPanelL("menu.panel.sound.toggle.on", "On") : menuPanelL("menu.panel.sound.toggle.off", "Muted"))
+                        Text(isEnabled ? menuPanelL("PanelSoundToggleOnLabel", "On") : menuPanelL("PanelSoundToggleOffLabel", "Muted"))
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
                     }
                     .padding(.horizontal, 9)
@@ -1244,7 +1244,7 @@ struct MenuBarPanelView: View {
         let remainder = total % 60
         if minutes == 0 {
             return String(
-                format: menuPanelL("menu.panel.value.seconds_short_format", "%ds"),
+                format: menuPanelL("PanelValueSecondsShortFormat", "%ds"),
                 remainder
             )
         }
@@ -1252,7 +1252,7 @@ struct MenuBarPanelView: View {
             return minutesText(minutes)
         }
         return String(
-            format: menuPanelL("menu.panel.value.minutes_seconds_short_format", "%dm %ds"),
+            format: menuPanelL("PanelValueMinutesSecondsShortFormat", "%dm %ds"),
             minutes,
             remainder
         )
@@ -1261,7 +1261,7 @@ struct MenuBarPanelView: View {
     /// Formats minutes using the localized short "x min" string.
     private func minutesText(_ minutes: Int) -> String {
         String(
-            format: menuPanelL("menu.panel.value.minutes_format", "%d min"),
+            format: menuPanelL("PanelValueMinutesFormat", "%d min"),
             minutes
         )
     }

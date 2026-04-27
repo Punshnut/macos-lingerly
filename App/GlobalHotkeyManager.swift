@@ -67,7 +67,7 @@ struct HotkeyShortcut: Equatable {
         if let scalar = scalarForANSIKeyCode(keyCode) {
             return String(scalar).uppercased()
         }
-        let format = String(localized: "settings.shortcuts.recorder.unknown_key_format")
+        let format = String(localized: "ShortcutsRecorderUnknownKeyFormat")
         return String(format: format, keyCode)
     }
 

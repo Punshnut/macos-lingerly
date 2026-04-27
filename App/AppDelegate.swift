@@ -110,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = String(localized: "Onboarding Window Title")
+        window.title = String(localized: "OnboardingWindowTitle")
         window.isReleasedWhenClosed = false
         window.contentViewController = hosting
         window.center()
@@ -129,7 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
 
         let settingsItem = NSMenuItem(
-            title: String(localized: "Settings..."),
+            title: String(localized: "AppMenuSettingsMenuItem"),
             action: #selector(openSettings(_:)),
             keyEquivalent: settingsMenuShortcut
         )
@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.settingsItem = settingsItem
 
         let checkForUpdatesItem = NSMenuItem(
-            title: String(localized: "Check for Updates..."),
+            title: String(localized: "AppMenuCheckUpdatesMenuItem"),
             action: #selector(checkForUpdates(_:)),
             keyEquivalent: ""
         )
@@ -156,7 +156,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.checkForUpdatesItem = checkForUpdatesItem
 
         let aboutItem = NSMenuItem(
-            title: String(localized: "menu.about.title", defaultValue: "About Lingerly"),
+            title: String(localized: "AppMenuAboutTitle", defaultValue: "About Lingerly"),
             action: #selector(openAbout(_:)),
             keyEquivalent: ""
         )
@@ -169,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.aboutItem = aboutItem
 
         let quitItem = NSMenuItem(
-            title: String(localized: "Quit Lingerly"),
+            title: String(localized: "AppMenuQuitMenuItem"),
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: quitMenuShortcut
         )
@@ -253,7 +253,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 backing: .buffered,
                 defer: false
             )
-            window.title = String(localized: "Settings")
+            window.title = String(localized: "AppSettingsWindowTitle")
             window.titlebarAppearsTransparent = true
             window.titlebarSeparatorStyle = .none
             window.toolbarStyle = .unifiedCompact
@@ -727,33 +727,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func menuCountdownTitle(display: AppStateController.NextBreakDisplay) -> String {
         switch display {
         case .inactive:
-            return String(localized: "Timer stopped")
+            return String(localized: "StatusTimerStopped")
         case .paused:
             let remaining = appState.pausedCountdownSeconds(at: Date()) ?? 0
             let countdown = AppStateController.formattedCountdown(remaining)
-            let pausedTitle = String(format: String(localized: "Timer paused at %@"), countdown)
+            let pausedTitle = String(format: String(localized: "StatusTimerPausedAtFormat"), countdown)
             return decorateForSmartPauseIfNeeded(pausedTitle)
         case .muted(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             return String(
-                format: String(localized: "menu.status.muted_format", defaultValue: "Muted %@"),
+                format: String(localized: "StatusMutedFormat", defaultValue: "Muted %@"),
                 remaining
             )
         case .cooldown(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
-            let cooldownTitle = String(format: String(localized: "Cooldown %@"), remaining)
+            let cooldownTitle = String(format: String(localized: "StatusCooldownFormat"), remaining)
             return decorateForSmartPauseIfNeeded(cooldownTitle)
         case .snoozing(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
-            return String(format: String(localized: "Snoozing for %@"), remaining)
+            return String(format: String(localized: "StatusSnoozingFormat"), remaining)
         case .breakDue:
-            return String(localized: "Break due now")
+            return String(localized: "StatusBreakDueNow")
         case .breakActive(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
-            return String(format: String(localized: "On break %@"), remaining)
+            return String(format: String(localized: "StatusOnBreakFormat"), remaining)
         case .running(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
-            return String(format: String(localized: "Next pause in %@"), remaining)
+            return String(format: String(localized: "StatusNextPauseFormat"), remaining)
         }
     }
 
@@ -761,7 +761,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func decorateForSmartPauseIfNeeded(_ title: String) -> String {
         guard let smartPauseCode = appState.smartPauseCode() else { return title }
         return String(
-            format: String(localized: "smart_pause.menu.prefix_format", defaultValue: "(%@) %@"),
+            format: String(localized: "SmartPauseMenuPrefixFormat", defaultValue: "(%@) %@"),
             smartPauseCode,
             title
         )

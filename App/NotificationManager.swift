@@ -117,7 +117,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// Posts the break-due notification after clearing previous copies.
     private func postBreakDueNotification() {
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "Notification Break Due Title")
+        content.title = String(localized: "NotifBreakDueTitle")
         content.body = WellnessReminderText.sentenceFromDefaults()
         content.sound = .default
 
@@ -139,8 +139,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// Posts the destructive skip-confirmation notification.
     private func postConfirmSkipNotification() {
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "Notification Skip Confirm Title")
-        content.body = String(localized: "Notification Skip Confirm Body")
+        content.title = String(localized: "NotifSkipConfirmTitle")
+        content.body = String(localized: "NotifSkipConfirmBody")
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -160,12 +160,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     /// Registers notification categories and action buttons.
     private func configureCategories(snoozeMinutes: Int = 1) {
         guard let center else { return }
-        let snoozeTitle = String.localizedStringWithFormat(String(localized: "Snooze 1 min"), max(snoozeMinutes, 1))
+        let snoozeTitle = String.localizedStringWithFormat(String(localized: "StatusSnooze1MinFormat"), max(snoozeMinutes, 1))
         let snooze = UNNotificationAction(identifier: ActionIdentifier.snooze, title: snoozeTitle, options: [])
-        let skip = UNNotificationAction(identifier: ActionIdentifier.skip, title: String(localized: "Notification Skip"), options: [.destructive])
+        let skip = UNNotificationAction(identifier: ActionIdentifier.skip, title: String(localized: "NotifSkipActionButton"), options: [.destructive])
 
-        let confirmSkip = UNNotificationAction(identifier: ActionIdentifier.confirmSkip, title: String(localized: "Notification Skip Confirm"), options: [.destructive])
-        let cancelSkip = UNNotificationAction(identifier: ActionIdentifier.cancelSkip, title: String(localized: "Notification Skip Cancel"), options: [])
+        let confirmSkip = UNNotificationAction(identifier: ActionIdentifier.confirmSkip, title: String(localized: "NotifSkipConfirmActionButton"), options: [.destructive])
+        let cancelSkip = UNNotificationAction(identifier: ActionIdentifier.cancelSkip, title: String(localized: "NotifSkipCancelButton"), options: [])
 
         let breakDueCategory = UNNotificationCategory(
             identifier: CategoryIdentifier.breakDue,

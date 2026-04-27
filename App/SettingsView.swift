@@ -24,28 +24,28 @@ struct SettingsView: View {
 
         NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: selection) {
-                Section(l("settings.sidebar.section.basics")) {
+                Section(l("SidebarSectionEssentials")) {
                     sidebarRow(.general)
                     sidebarRow(.breakSchedule)
                 }
 
-                Section(l("settings.sidebar.section.focus_wellness")) {
+                Section(l("SidebarSectionFlow")) {
                     sidebarRow(.smartPause)
                     sidebarRow(.wellness)
                 }
 
-                Section(l("settings.sidebar.section.personalize")) {
+                Section(l("SidebarSectionStudio")) {
                     sidebarRow(.appearance)
                     sidebarRow(.sound)
                     sidebarRow(.widgets)
                 }
 
-                Section(l("settings.sidebar.section.advanced")) {
+                Section(l("SidebarSectionAdvanced")) {
                     sidebarRow(.shortcuts)
                     sidebarRow(.automation)
                 }
 
-                Section(l("settings.sidebar.section.about")) {
+                Section(l("SidebarSectionAbout")) {
                     sidebarRow(.about)
                 }
             }
@@ -204,16 +204,16 @@ enum SettingsSidebarItem: String, CaseIterable, Hashable {
 
     var title: String {
         switch self {
-        case .general: return l("settings.sidebar.item.general")
-        case .breakSchedule: return l("settings.sidebar.item.break_timing")
-        case .smartPause: return l("settings.sidebar.item.auto_pause")
-        case .wellness: return l("settings.sidebar.item.wellness")
-        case .appearance: return l("settings.sidebar.item.appearance")
-        case .sound: return l("settings.sidebar.item.sounds")
-        case .widgets: return l("settings.sidebar.item.widgets")
-        case .shortcuts: return l("settings.sidebar.item.shortcuts")
-        case .automation: return l("settings.sidebar.item.automation")
-        case .about: return l("settings.sidebar.item.about")
+        case .general: return l("SidebarItemOverview")
+        case .breakSchedule: return l("SidebarItemCadence")
+        case .smartPause: return l("SidebarItemSmartPause")
+        case .wellness: return l("SidebarItemWellness")
+        case .appearance: return l("SidebarItemStyle")
+        case .sound: return l("SidebarItemChimes")
+        case .widgets: return l("SidebarItemWidgets")
+        case .shortcuts: return l("SidebarItemHotkeys")
+        case .automation: return l("SidebarItemRules")
+        case .about: return l("SidebarItemAbout")
         }
     }
 
@@ -251,15 +251,15 @@ private struct SettingsDetailView: View {
             AppearanceSettingsView()
         case .sound:
             PlaceholderSettingsView(
-                title: l("settings.placeholder.sounds.title"),
-                subtitle: l("settings.placeholder.sounds.subtitle"),
-                detail: l("settings.placeholder.sounds.detail")
+                title: l("PlaceholderChimesTitle"),
+                subtitle: l("PlaceholderChimesSubtitle"),
+                detail: l("PlaceholderChimesDetail")
             )
         case .widgets:
             PlaceholderSettingsView(
-                title: l("settings.placeholder.widgets.title"),
-                subtitle: l("settings.placeholder.widgets.subtitle"),
-                detail: l("settings.placeholder.widgets.detail")
+                title: l("PlaceholderWidgetsTitle"),
+                subtitle: l("PlaceholderWidgetsSubtitle"),
+                detail: l("PlaceholderWidgetsDetail")
             )
         case .shortcuts:
             ShortcutsSettingsView()
@@ -277,14 +277,14 @@ private struct GeneralSettingsView: View {
 
     var body: some View {
         SettingsScrollView(
-            title: l("settings.general.title"),
-            subtitle: l("settings.general.subtitle")
+            title: l("OverviewTitle"),
+            subtitle: l("OverviewSubtitle")
         ) {
-            SettingsCard(l("settings.overview.card.title"), subtitle: l("settings.overview.card.subtitle")) {
+            SettingsCard(l("OverviewCardTitle"), subtitle: l("OverviewCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "power.circle.fill",
-                    title: l("settings.general.autostart.title"),
-                    subtitle: l("settings.general.autostart.subtitle"),
+                    title: l("OverviewAutostartTitle"),
+                    subtitle: l("OverviewAutostartSubtitle"),
                     isOn: Binding(
                         get: { launchAtLogin.isEnabled },
                         set: { launchAtLogin.setEnabled($0) }
@@ -295,8 +295,8 @@ private struct GeneralSettingsView: View {
 
                 SettingsRow(
                     icon: "hourglass",
-                    title: l("settings.general.next_pause.title"),
-                    subtitle: l("settings.general.next_pause.subtitle")
+                    title: l("OverviewNextPauseTitle"),
+                    subtitle: l("OverviewNextPauseSubtitle")
                 ) {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         let display = appState.nextBreakDisplay(at: context.date)
@@ -312,16 +312,16 @@ private struct GeneralSettingsView: View {
 
                 SettingsRow(
                     icon: "hand.tap.fill",
-                    title: l("settings.general.actions.title"),
-                    subtitle: l("settings.general.actions.subtitle")
+                    title: l("OverviewActionsTitle"),
+                    subtitle: l("OverviewActionsSubtitle")
                 ) {
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
                         let isRunning = appState.isRunning
                         HStack(spacing: 10) {
-                            Button(String(localized: "Overlay Title")) {
+                            Button(String(localized: "OverlayTitle")) {
                                 appState.takeBreakNow()
                             }
-                            Button(String(localized: "Reset Timer")) {
+                            Button(String(localized: "ActionsRestartTimerButton")) {
                                 appState.resetTimer()
                             }
                         }
@@ -335,11 +335,11 @@ private struct GeneralSettingsView: View {
 
                 SettingsRow(
                     icon: "sparkles",
-                    title: l("settings.general.updates.title"),
-                    subtitle: l("settings.general.updates.subtitle")
+                    title: l("OverviewUpdatesTitle"),
+                    subtitle: l("OverviewUpdatesSubtitle")
                 ) {
                     let updaterAvailable = (NSApp.delegate as? AppDelegate)?.isUpdaterAvailable ?? false
-                    Button(String(localized: "Check for Updates...")) {
+                    Button(String(localized: "AppMenuCheckUpdatesMenuItem")) {
                         (NSApp.delegate as? AppDelegate)?.checkForUpdates(nil)
                     }
                     .buttonStyle(.bordered)
@@ -357,24 +357,24 @@ private struct GeneralSettingsView: View {
             return (AppStateController.formattedCountdown(seconds), false)
         case .breakActive(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
-            return (String(format: String(localized: "On break %@"), remaining), false)
+            return (String(format: String(localized: "StatusOnBreakFormat"), remaining), false)
         case .breakDue:
-            return (String(localized: "Break due now"), true)
+            return (String(localized: "StatusBreakDueNow"), true)
         case .paused:
-            return (String(localized: "Timer paused"), true)
+            return (String(localized: "StatusTimerPaused"), true)
         case .muted(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             return (
-                String(format: String(localized: "menu.status.muted_format", defaultValue: "Muted %@"), remaining),
+                String(format: String(localized: "StatusMutedFormat", defaultValue: "Muted %@"), remaining),
                 false
             )
         case .cooldown:
-            return (String(localized: "Cooldown"), true)
+            return (String(localized: "StatusCooldown"), true)
         case .snoozing(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
-            return (String(format: String(localized: "Snoozing for %@"), remaining), false)
+            return (String(format: String(localized: "StatusSnoozingFormat"), remaining), false)
         case .inactive:
-            return (String(localized: "Timer stopped"), true)
+            return (String(localized: "StatusTimerStopped"), true)
         }
     }
 }
@@ -392,21 +392,21 @@ private struct BreakScheduleSettingsView: View {
 
     var body: some View {
         SettingsScrollView(
-            title: l("settings.placeholder.break_timing.title"),
-            subtitle: l("settings.placeholder.break_timing.subtitle")
+            title: l("PlaceholderCadenceTitle"),
+            subtitle: l("PlaceholderCadenceSubtitle")
         ) {
-            SettingsCard(l("settings.general.card.break_timing.title"), subtitle: l("settings.general.card.break_timing.subtitle")) {
+            SettingsCard(l("OverviewBreakTimingCardTitle"), subtitle: l("OverviewBreakTimingCardSubtitle")) {
                 SettingsRow(
                     icon: "clock.badge",
-                    title: l("settings.general.timing_preset.title"),
-                    subtitle: l("settings.general.timing_preset.subtitle")
+                    title: l("OverviewTimingPresetTitle"),
+                    subtitle: l("OverviewTimingPresetSubtitle")
                 ) {
                     PresetSegmentedControl(
                         selection: $presetId,
                         labels: [
-                            l("settings.general.timing_preset.option_20_20_20"),
-                            l("settings.general.timing_preset.option_45_15"),
-                            l("settings.general.timing_preset.option_custom")
+                            l("OverviewTimingPreset2020Option"),
+                            l("OverviewTimingPreset4515Option"),
+                            l("OverviewTimingPresetCustomOption")
                         ],
                         ids: ["20-20-20", "45-15", "custom"],
                         onReselect: {
@@ -422,13 +422,13 @@ private struct BreakScheduleSettingsView: View {
 
                 SettingsRow(
                     icon: "zzz",
-                    title: l("settings.general.snooze_length.title"),
-                    subtitle: l("settings.general.snooze_length.subtitle")
+                    title: l("OverviewSnoozeLengthTitle"),
+                    subtitle: l("OverviewSnoozeLengthSubtitle")
                 ) {
                     HStack(spacing: 12) {
                         Slider(value: snoozeMinutesBinding, in: 1...9, step: 1)
                             .frame(width: 180)
-                        Text(String(format: l("settings.general.snooze_length.value"), snoozeMinutes))
+                        Text(String(format: l("OverviewSnoozeLengthFormat"), snoozeMinutes))
                             .foregroundStyle(.secondary)
                             .frame(width: 60, alignment: .trailing)
                     }
@@ -438,13 +438,13 @@ private struct BreakScheduleSettingsView: View {
 
                 SettingsRow(
                     icon: "timer",
-                    title: l("settings.general.current_cycle.title"),
-                    subtitle: l("settings.general.current_cycle.subtitle")
+                    title: l("OverviewCurrentCycleTitle"),
+                    subtitle: l("OverviewCurrentCycleSubtitle")
                 ) {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(String(format: l("settings.general.current_cycle.focus"), reminderIntervalMinutes))
+                        Text(String(format: l("OverviewCurrentCycleFocusFormat"), reminderIntervalMinutes))
                             .font(.callout.weight(.semibold))
-                        Text(String(format: l("settings.general.current_cycle.break"), formattedBreakDuration(breakDurationSeconds)))
+                        Text(String(format: l("OverviewCurrentCycleBreakFormat"), formattedBreakDuration(breakDurationSeconds)))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -548,27 +548,27 @@ private struct CustomPresetSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(l("settings.custom_preset.title"))
+            Text(l("CustomPresetTitle"))
                 .font(.title2.weight(.semibold))
 
             durationRow(
-                title: l("settings.custom_preset.focus"),
+                title: l("CustomPresetFocusLabel"),
                 hours: $focusHours,
                 minutes: $focusMinutes,
                 maxHours: 12
             )
 
             durationRow(
-                title: l("settings.custom_preset.break"),
+                title: l("CustomPresetBreakLabel"),
                 minutes: $breakMinutes,
                 seconds: $breakSeconds,
                 maxMinutes: 59
             )
 
             HStack(spacing: 12) {
-                Button(l("settings.custom_preset.cancel"), action: onCancel)
+                Button(l("CustomPresetCancelButton"), action: onCancel)
                 Spacer(minLength: 12)
-                Button(l("settings.custom_preset.save"), action: onSave)
+                Button(l("CustomPresetSaveButton"), action: onSave)
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -594,7 +594,7 @@ private struct CustomPresetSheet: View {
                     in: 0...maxHours,
                     step: 1
                 ) {
-                    Text("\(hours.wrappedValue) \(l("settings.custom_preset.hours"))")
+                    Text("\(hours.wrappedValue) \(l("CustomPresetHoursLabel"))")
                         .frame(width: 70, alignment: .leading)
                 }
                 .frame(width: 140, alignment: .leading)
@@ -605,7 +605,7 @@ private struct CustomPresetSheet: View {
                     in: 0...59,
                     step: 1
                 ) {
-                    Text("\(minutes.wrappedValue) \(l("settings.custom_preset.minutes"))")
+                    Text("\(minutes.wrappedValue) \(l("CustomPresetMinutesLabel"))")
                         .frame(width: 70, alignment: .leading)
                 }
                 .frame(width: 140, alignment: .leading)
@@ -631,7 +631,7 @@ private struct CustomPresetSheet: View {
                     in: 0...maxMinutes,
                     step: 1
                 ) {
-                    Text("\(minutes.wrappedValue) \(l("settings.custom_preset.minutes"))")
+                    Text("\(minutes.wrappedValue) \(l("CustomPresetMinutesLabel"))")
                         .frame(width: 70, alignment: .leading)
                 }
                 .frame(width: 140, alignment: .leading)
@@ -642,7 +642,7 @@ private struct CustomPresetSheet: View {
                     in: 0...59,
                     step: 1
                 ) {
-                    Text("\(seconds.wrappedValue) \(l("settings.custom_preset.seconds"))")
+                    Text("\(seconds.wrappedValue) \(l("CustomPresetSecondsLabel"))")
                         .frame(width: 70, alignment: .leading)
                 }
                 .frame(width: 140, alignment: .leading)
@@ -731,27 +731,27 @@ private struct SmartPauseSettingsView: View {
 
     var body: some View {
         SettingsScrollView(
-            title: l("settings.placeholder.auto_pause.title"),
-            subtitle: l("settings.placeholder.auto_pause.subtitle")
+            title: l("PlaceholderSmartPauseTitle"),
+            subtitle: l("PlaceholderSmartPauseSubtitle")
         ) {
-            SettingsCard(l("settings.enforcement.card.title"), subtitle: l("settings.enforcement.card.subtitle")) {
+            SettingsCard(l("EnforcementCardTitle"), subtitle: l("EnforcementCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "bell.badge",
-                    title: l("settings.break_prompt.notification_only.title"),
-                    subtitle: l("settings.break_prompt.notification_only.subtitle"),
+                    title: l("BreakPromptNotifOnlyTitle"),
+                    subtitle: l("BreakPromptNotifOnlySubtitle"),
                     isOn: $alwaysNotificationOnly
                 )
             }
 
-            SettingsCard(l("settings.fullscreen.card.title"), subtitle: l("settings.fullscreen.card.subtitle")) {
+            SettingsCard(l("FullscreenCardTitle"), subtitle: l("FullscreenCardSubtitle")) {
                 SettingsRow(
                     icon: "rectangle.inset.filled.on.rectangle",
-                    title: l("settings.fullscreen.interruption.title"),
-                    subtitle: l("settings.fullscreen.interruption.subtitle")
+                    title: l("FullscreenInterruptionTitle"),
+                    subtitle: l("FullscreenInterruptionSubtitle")
                 ) {
                     Picker("", selection: $fullscreenBehaviorRaw) {
-                        Text(l("settings.fullscreen.interruption.option_notify")).tag(FullscreenBehavior.notify.rawValue)
-                        Text(l("settings.fullscreen.interruption.option_interrupt")).tag(FullscreenBehavior.interrupt.rawValue)
+                        Text(l("FullscreenInterruptionNotifyOption")).tag(FullscreenBehavior.notify.rawValue)
+                        Text(l("FullscreenInterruptionOverlayOption")).tag(FullscreenBehavior.interrupt.rawValue)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
@@ -760,29 +760,29 @@ private struct SmartPauseSettingsView: View {
                 }
             }
 
-            SettingsCard(l("settings.unlock.card.title"), subtitle: l("settings.unlock.card.subtitle")) {
+            SettingsCard(l("UnlockCardTitle"), subtitle: l("UnlockCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "lock.open.fill",
-                    title: l("settings.unlock.reset.title"),
-                    subtitle: l("settings.unlock.reset.subtitle"),
+                    title: l("UnlockResetTitle"),
+                    subtitle: l("UnlockResetSubtitle"),
                     isOn: $resetOnUnlock
                 )
             }
 
-            SettingsCard(l("settings.media.card.title"), subtitle: l("settings.media.card.subtitle")) {
+            SettingsCard(l("MediaCardTitle"), subtitle: l("MediaCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "play.circle.fill",
-                    title: l("settings.media.pause.title"),
-                    subtitle: l("settings.media.pause.subtitle"),
+                    title: l("MediaPauseTitle"),
+                    subtitle: l("MediaPauseSubtitle"),
                     isOn: $mediaPauseEnabled
                 )
             }
 
-            SettingsCard(l("settings.pause_apps.card.title"), subtitle: l("settings.pause_apps.card.subtitle")) {
+            SettingsCard(l("PauseAppsCardTitle"), subtitle: l("PauseAppsCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "app.badge",
-                    title: l("settings.pause_apps.toggle.title"),
-                    subtitle: l("settings.pause_apps.toggle.subtitle"),
+                    title: l("PauseAppsToggleTitle"),
+                    subtitle: l("PauseAppsToggleSubtitle"),
                     isOn: $pauseForAppsEnabled
                 )
 
@@ -794,11 +794,11 @@ private struct SmartPauseSettingsView: View {
                 )
             }
 
-            SettingsCard(l("settings.pause_schedule.card.title"), subtitle: l("settings.pause_schedule.card.subtitle")) {
+            SettingsCard(l("ScheduleCardTitle"), subtitle: l("ScheduleCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "calendar.badge.clock",
-                    title: l("settings.pause_schedule.toggle.title"),
-                    subtitle: l("settings.pause_schedule.toggle.subtitle"),
+                    title: l("ScheduleToggleTitle"),
+                    subtitle: l("ScheduleToggleSubtitle"),
                     isOn: $smartPauseScheduleEnabled
                 )
 
@@ -810,15 +810,15 @@ private struct SmartPauseSettingsView: View {
                 )
             }
 
-            SettingsCard(l("settings.pause_behavior.card.title"), subtitle: l("settings.pause_behavior.card.subtitle")) {
+            SettingsCard(l("PauseBehaviorCardTitle"), subtitle: l("PauseBehaviorCardSubtitle")) {
                 SettingsRow(
                     icon: "arrow.clockwise.circle",
-                    title: l("settings.pause_behavior.title"),
-                    subtitle: l("settings.pause_behavior.subtitle")
+                    title: l("PauseBehaviorTitle"),
+                    subtitle: l("PauseBehaviorSubtitle")
                 ) {
                     Picker("", selection: $smartPauseResumeBehaviorRaw) {
-                        Text(l("settings.pause_behavior.option_resume")).tag(SmartPauseResumeBehavior.resumeTimer.rawValue)
-                        Text(l("settings.pause_behavior.option_reset")).tag(SmartPauseResumeBehavior.resetTimer.rawValue)
+                        Text(l("PauseBehaviorResumeOption")).tag(SmartPauseResumeBehavior.resumeTimer.rawValue)
+                        Text(l("PauseBehaviorResetOption")).tag(SmartPauseResumeBehavior.resetTimer.rawValue)
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
@@ -830,13 +830,13 @@ private struct SmartPauseSettingsView: View {
 
                 SettingsRow(
                     icon: "hourglass",
-                    title: l("settings.pause_behavior.cooldown.title"),
-                    subtitle: l("settings.pause_behavior.cooldown.subtitle")
+                    title: l("PauseBehaviorCooldownTitle"),
+                    subtitle: l("PauseBehaviorCooldownSubtitle")
                 ) {
                     HStack(spacing: 12) {
                         Slider(value: smartPauseCooldownMinutesBinding, in: 1...5, step: 1)
                             .frame(width: 180)
-                        Text(String(format: l("settings.pause_behavior.cooldown.value"), smartPauseCooldownMinutes))
+                        Text(String(format: l("PauseBehaviorCooldownFormat"), smartPauseCooldownMinutes))
                             .foregroundStyle(.secondary)
                             .frame(width: 60, alignment: .trailing)
                     }
@@ -875,10 +875,10 @@ private struct PauseAppsListEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Text(l("settings.pause_apps.list.title"))
+                Text(l("PauseAppsListTitle"))
                     .font(.callout.weight(.semibold))
                 Spacer()
-                Button(l("settings.pause_apps.add_button")) {
+                Button(l("PauseAppsAddButton")) {
                     addAppRule()
                 }
                 .buttonStyle(.bordered)
@@ -887,7 +887,7 @@ private struct PauseAppsListEditor: View {
             }
 
             if rules.isEmpty {
-                Text(l("settings.pause_apps.list.empty"))
+                Text(l("PauseAppsListEmpty"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.leading, 4)
@@ -920,8 +920,8 @@ private struct PauseAppsListEditor: View {
     /// Prompts for an app bundle and adds it to pause-on-app-open rules.
     private func addAppRule() {
         let panel = NSOpenPanel()
-        panel.title = l("settings.pause_apps.panel.title")
-        panel.prompt = l("settings.pause_apps.panel.add")
+        panel.title = l("PauseAppsPanelTitle")
+        panel.prompt = l("PauseAppsPanelAddButton")
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
@@ -1025,10 +1025,10 @@ private struct SmartPauseScheduleEditor: View {
     private var quickEditorSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Text(l("settings.pause_schedule.quick.title"))
+                Text(l("ScheduleQuickSetupTitle"))
                     .font(.callout.weight(.semibold))
                 Spacer()
-                Button(l("settings.pause_schedule.mode.advanced")) {
+                Button(l("ScheduleModeAdvancedLabel")) {
                     showingAdvanced = true
                 }
                 .buttonStyle(.bordered)
@@ -1039,12 +1039,12 @@ private struct SmartPauseScheduleEditor: View {
             if let first = periods.first {
                 quickEditor(for: first)
             } else {
-                Text(l("settings.pause_schedule.empty"))
+                Text(l("ScheduleEmptyText"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.leading, 4)
 
-                Button(l("settings.pause_schedule.add_first")) {
+                Button(l("ScheduleAddFirstButton")) {
                     periods = [defaultPeriod()]
                 }
                 .buttonStyle(.borderedProminent)
@@ -1063,8 +1063,8 @@ private struct SmartPauseScheduleEditor: View {
                     mutateFirst { $0.mode = value }
                 }
             )) {
-                Text(l("settings.pause_schedule.period.mode.active")).tag(SmartPauseScheduleMode.active)
-                Text(l("settings.pause_schedule.period.mode.inactive")).tag(SmartPauseScheduleMode.inactive)
+                Text(l("SchedulePeriodModeActiveLabel")).tag(SmartPauseScheduleMode.active)
+                Text(l("SchedulePeriodModeInactiveLabel")).tag(SmartPauseScheduleMode.inactive)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -1072,7 +1072,7 @@ private struct SmartPauseScheduleEditor: View {
 
             HStack(spacing: 12) {
                 DatePicker(
-                    l("settings.pause_schedule.time.start"),
+                    l("ScheduleTimeStartLabel"),
                     selection: Binding(
                         get: { date(fromMinute: period.startMinute) },
                         set: { value in
@@ -1084,7 +1084,7 @@ private struct SmartPauseScheduleEditor: View {
                 .labelsHidden()
 
                 DatePicker(
-                    l("settings.pause_schedule.time.end"),
+                    l("ScheduleTimeEndLabel"),
                     selection: Binding(
                         get: { date(fromMinute: period.endMinute) },
                         set: { value in
@@ -1118,16 +1118,16 @@ private struct SmartPauseScheduleEditor: View {
     private var advancedEditor: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Text(l("settings.pause_schedule.periods.title"))
+                Text(l("SchedulePeriodsTitle"))
                     .font(.callout.weight(.semibold))
                 Spacer()
-                Button(l("settings.pause_schedule.mode.simple")) {
+                Button(l("ScheduleModeSimpleLabel")) {
                     showingAdvanced = false
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(!isEnabled)
-                Button(l("settings.pause_schedule.periods.add")) {
+                Button(l("SchedulePeriodsAddButton")) {
                     periods.append(defaultPeriod())
                 }
                 .buttonStyle(.bordered)
@@ -1136,7 +1136,7 @@ private struct SmartPauseScheduleEditor: View {
             }
 
             if periods.isEmpty {
-                Text(l("settings.pause_schedule.periods.empty"))
+                Text(l("SchedulePeriodsEmptyText"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -1219,7 +1219,7 @@ private struct SmartPauseSchedulePeriodRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                Text(String(format: l("settings.pause_schedule.period.label"), index + 1))
+                Text(String(format: l("SchedulePeriodLabelFormat"), index + 1))
                     .font(.callout.weight(.semibold))
                 Spacer()
                 Button(role: .destructive, action: onDelete) {
@@ -1237,8 +1237,8 @@ private struct SmartPauseSchedulePeriodRow: View {
                     onChange(updated)
                 }
             )) {
-                Text(l("settings.pause_schedule.period.mode.active")).tag(SmartPauseScheduleMode.active)
-                Text(l("settings.pause_schedule.period.mode.inactive")).tag(SmartPauseScheduleMode.inactive)
+                Text(l("SchedulePeriodModeActiveLabel")).tag(SmartPauseScheduleMode.active)
+                Text(l("SchedulePeriodModeInactiveLabel")).tag(SmartPauseScheduleMode.inactive)
             }
             .pickerStyle(.menu)
             .labelsHidden()
@@ -1246,7 +1246,7 @@ private struct SmartPauseSchedulePeriodRow: View {
 
             HStack(spacing: 12) {
                 DatePicker(
-                    l("settings.pause_schedule.time.start"),
+                    l("ScheduleTimeStartLabel"),
                     selection: Binding(
                         get: { date(fromMinute: period.startMinute) },
                         set: { value in
@@ -1260,7 +1260,7 @@ private struct SmartPauseSchedulePeriodRow: View {
                 .labelsHidden()
 
                 DatePicker(
-                    l("settings.pause_schedule.time.end"),
+                    l("ScheduleTimeEndLabel"),
                     selection: Binding(
                         get: { date(fromMinute: period.endMinute) },
                         set: { value in
@@ -1353,14 +1353,14 @@ private struct WellnessSettingsView: View {
 
     var body: some View {
         SettingsScrollView(
-            title: l("settings.placeholder.wellness.title"),
-            subtitle: l("settings.placeholder.wellness.subtitle")
+            title: l("PlaceholderWellnessTitle"),
+            subtitle: l("PlaceholderWellnessSubtitle")
         ) {
-            SettingsCard(l("settings.wellness.card.title"), subtitle: l("settings.wellness.card.subtitle")) {
+            SettingsCard(l("WellnessCardTitle"), subtitle: l("WellnessCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "drop.fill",
-                    title: l("settings.wellness.hydration.title"),
-                    subtitle: l("settings.wellness.hydration.subtitle"),
+                    title: l("WellnessHydrationTitle"),
+                    subtitle: l("WellnessHydrationSubtitle"),
                     isOn: $waterReminderEnabled
                 )
 
@@ -1368,8 +1368,8 @@ private struct WellnessSettingsView: View {
 
                 SettingsToggleRow(
                     icon: "wind",
-                    title: l("settings.wellness.fresh_air.title"),
-                    subtitle: l("settings.wellness.fresh_air.subtitle"),
+                    title: l("WellnessFreshAirTitle"),
+                    subtitle: l("WellnessFreshAirSubtitle"),
                     isOn: $freshAirReminderEnabled
                 )
 
@@ -1377,8 +1377,8 @@ private struct WellnessSettingsView: View {
 
                 SettingsToggleRow(
                     icon: "figure.walk",
-                    title: l("settings.wellness.stand_up.title"),
-                    subtitle: l("settings.wellness.stand_up.subtitle"),
+                    title: l("WellnessStandUpTitle"),
+                    subtitle: l("WellnessStandUpSubtitle"),
                     isOn: $standUpReminderEnabled
                 )
 
@@ -1386,8 +1386,8 @@ private struct WellnessSettingsView: View {
 
                 SettingsToggleRow(
                     icon: "figure.strengthtraining.traditional",
-                    title: l("settings.wellness.workout.title"),
-                    subtitle: l("settings.wellness.workout.subtitle"),
+                    title: l("WellnessWorkoutTitle"),
+                    subtitle: l("WellnessWorkoutSubtitle"),
                     isOn: $workoutReminderEnabled
                 )
             }
@@ -1402,29 +1402,29 @@ private struct AppearanceSettingsView: View {
 
     var body: some View {
         SettingsScrollView(
-            title: l("settings.placeholder.appearance.title"),
-            subtitle: l("settings.placeholder.appearance.subtitle")
+            title: l("PlaceholderStyleTitle"),
+            subtitle: l("PlaceholderStyleSubtitle")
         ) {
-            SettingsCard(l("settings.appearance.card.title"), subtitle: l("settings.appearance.card.subtitle")) {
+            SettingsCard(l("AppearanceMenuBarCardTitle"), subtitle: l("AppearanceMenuBarCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "menubar.rectangle",
-                    title: l("settings.general.menubar_timer.title"),
-                    subtitle: l("settings.general.menubar_timer.subtitle"),
-                    badge: l("settings.badge.beta"),
+                    title: l("OverviewMenuBarTimerTitle"),
+                    subtitle: l("OverviewMenuBarTimerSubtitle"),
+                    badge: l("BadgeBetaLabel"),
                     isOn: $menuBarTimerEnabled
                 )
             }
 
-            SettingsCard(l("settings.appearance.overlay.card.title"), subtitle: l("settings.appearance.overlay.card.subtitle")) {
+            SettingsCard(l("AppearanceOverlayCardTitle"), subtitle: l("AppearanceOverlayCardSubtitle")) {
                 SettingsRow(
                     icon: "rectangle.inset.filled.on.rectangle",
-                    title: l("settings.appearance.overlay.style.title"),
-                    subtitle: l("settings.appearance.overlay.style.subtitle"),
-                    badge: l("settings.badge.beta")
+                    title: l("AppearanceOverlayStyleTitle"),
+                    subtitle: l("AppearanceOverlayStyleSubtitle"),
+                    badge: l("BadgeBetaLabel")
                 ) {
                     Picker("", selection: $overlayStyleRaw) {
-                        Text(l("settings.appearance.overlay.style.option_classic")).tag(OverlayStyle.classic.rawValue)
-                        Text(l("settings.appearance.overlay.style.option_modern")).tag(OverlayStyle.modernTahoe.rawValue)
+                        Text(l("AppearanceOverlayStyleClassicOption")).tag(OverlayStyle.classic.rawValue)
+                        Text(l("AppearanceOverlayStyleModernOption")).tag(OverlayStyle.modernTahoe.rawValue)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
@@ -1435,19 +1435,19 @@ private struct AppearanceSettingsView: View {
 
                 SettingsToggleRow(
                     icon: "lock.fill",
-                    title: l("settings.enforcement.lock_screen.title"),
-                    subtitle: l("settings.enforcement.lock_screen.subtitle"),
+                    title: l("EnforcementLockScreenTitle"),
+                    subtitle: l("EnforcementLockScreenSubtitle"),
                     isOn: $allowLockScreen
                 )
             }
 
-            SettingsCard(l("settings.placeholder.card.title")) {
+            SettingsCard(l("PlaceholderCardTitle")) {
                 SettingsRow(
                     icon: "sparkles",
-                    title: l("settings.placeholder.appearance.detail"),
-                    subtitle: l("settings.placeholder.card.subtitle")
+                    title: l("PlaceholderStyleDetail"),
+                    subtitle: l("PlaceholderCardSubtitle")
                 ) {
-                    Text(l("settings.placeholder.badge"))
+                    Text(l("PlaceholderBadgeLabel"))
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -1472,17 +1472,17 @@ private struct ShortcutsSettingsView: View {
 
     var body: some View {
         SettingsScrollView(
-            title: l("settings.shortcuts.title"),
-            subtitle: l("settings.shortcuts.subtitle")
+            title: l("ShortcutsTitle"),
+            subtitle: l("ShortcutsSubtitle")
         ) {
             SettingsCard(
-                l("settings.shortcuts.card.title"),
-                subtitle: l("settings.shortcuts.card.subtitle")
+                l("ShortcutsCardTitle"),
+                subtitle: l("ShortcutsCardSubtitle")
             ) {
                 SettingsRow(
                     icon: "playpause.fill",
-                    title: l("settings.shortcuts.start_stop.title"),
-                    subtitle: l("settings.shortcuts.start_stop.subtitle")
+                    title: l("ShortcutsStartStopTitle"),
+                    subtitle: l("ShortcutsStartStopSubtitle")
                 ) {
                     HotkeyRecorderField(shortcutValue: $startStopShortcut)
                         .frame(width: 220)
@@ -1492,8 +1492,8 @@ private struct ShortcutsSettingsView: View {
 
                 SettingsRow(
                     icon: "arrow.counterclockwise.circle.fill",
-                    title: l("settings.shortcuts.reset_timer.title"),
-                    subtitle: l("settings.shortcuts.reset_timer.subtitle")
+                    title: l("ShortcutsResetTimerTitle"),
+                    subtitle: l("ShortcutsResetTimerSubtitle")
                 ) {
                     HotkeyRecorderField(shortcutValue: $resetTimerShortcut)
                         .frame(width: 220)
@@ -1503,8 +1503,8 @@ private struct ShortcutsSettingsView: View {
 
                 SettingsRow(
                     icon: "sparkles",
-                    title: l("settings.shortcuts.linger.title"),
-                    subtitle: l("settings.shortcuts.linger.subtitle")
+                    title: l("ShortcutsLingerTitle"),
+                    subtitle: l("ShortcutsLingerSubtitle")
                 ) {
                     HotkeyRecorderField(shortcutValue: $lingerALittleShortcut)
                         .frame(width: 220)
@@ -1514,8 +1514,8 @@ private struct ShortcutsSettingsView: View {
 
                 SettingsRow(
                     icon: "moon.zzz.fill",
-                    title: l("settings.shortcuts.snooze_prompt.title"),
-                    subtitle: l("settings.shortcuts.snooze_prompt.subtitle")
+                    title: l("ShortcutsSnoozePromptTitle"),
+                    subtitle: l("ShortcutsSnoozePromptSubtitle")
                 ) {
                     HotkeyRecorderField(shortcutValue: $snoozePromptShortcut)
                         .frame(width: 220)
@@ -1690,7 +1690,7 @@ private final class HotkeyRecorderView: NSView {
                 ? NSColor.white.withAlphaComponent(0.92)
                 : NSColor(calibratedWhite: 0.08, alpha: 0.92)
         } else {
-            label.stringValue = l("settings.shortcuts.recorder.placeholder")
+            label.stringValue = l("ShortcutsRecorderPlaceholder")
             label.textColor = isDarkMode
                 ? NSColor.white.withAlphaComponent(0.55)
                 : NSColor(calibratedWhite: 0.12, alpha: 0.48)
@@ -1706,13 +1706,13 @@ private struct PlaceholderSettingsView: View {
 
     var body: some View {
         SettingsScrollView(title: title, subtitle: subtitle) {
-            SettingsCard(l("settings.placeholder.card.title")) {
+            SettingsCard(l("PlaceholderCardTitle")) {
                 SettingsRow(
                     icon: "sparkles",
                     title: detail,
-                    subtitle: l("settings.placeholder.card.subtitle")
+                    subtitle: l("PlaceholderCardSubtitle")
                 ) {
-                    Text(l("settings.placeholder.badge"))
+                    Text(l("PlaceholderBadgeLabel"))
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -1732,23 +1732,23 @@ private struct PlaceholderSettingsView: View {
 private struct AutomationSettingsView: View {
     var body: some View {
         SettingsScrollView(
-            title: l("settings.automation.title"),
-            subtitle: l("settings.automation.subtitle")
+            title: l("AutomationTitle"),
+            subtitle: l("AutomationSubtitle")
         ) {
-            SettingsCard(l("settings.automation.card.title"), subtitle: l("settings.automation.card.subtitle")) {
+            SettingsCard(l("AutomationCardTitle"), subtitle: l("AutomationCardSubtitle")) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(l("settings.automation.body"))
+                    Text(l("AutomationBody"))
                         .foregroundStyle(.secondary)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        AutomationActionRow(icon: "pause.circle.fill", title: l("settings.automation.action.pause"))
-                        AutomationActionRow(icon: "play.circle.fill", title: l("settings.automation.action.resume"))
-                        AutomationActionRow(icon: "forward.end.circle.fill", title: l("settings.automation.action.skip"))
-                        AutomationActionRow(icon: "moon.zzz.fill", title: l("settings.automation.action.snooze"))
-                        AutomationActionRow(icon: "arrow.counterclockwise.circle.fill", title: l("settings.automation.action.reset"))
+                        AutomationActionRow(icon: "pause.circle.fill", title: l("AutomationActionPauseLabel"))
+                        AutomationActionRow(icon: "play.circle.fill", title: l("AutomationActionResumeLabel"))
+                        AutomationActionRow(icon: "forward.end.circle.fill", title: l("AutomationActionSkipLabel"))
+                        AutomationActionRow(icon: "moon.zzz.fill", title: l("AutomationActionSnoozeLabel"))
+                        AutomationActionRow(icon: "arrow.counterclockwise.circle.fill", title: l("AutomationActionResetLabel"))
                     }
 
-                    Text(l("settings.automation.footer"))
+                    Text(l("AutomationFooterText"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -1776,27 +1776,27 @@ private struct AboutMeView: View {
 
     var body: some View {
         SettingsScrollView(
-            title: l("settings.about.title"),
-            subtitle: l("settings.about.subtitle")
+            title: l("AboutTitle"),
+            subtitle: l("AboutSubtitle")
         ) {
             SettingsCard(
-                String(localized: "settings.about.version.card.title", defaultValue: "Version"),
+                String(localized: "AboutVersionCardTitle", defaultValue: "Version"),
                 subtitle: String(
-                    localized: "settings.about.version.card.subtitle",
+                    localized: "AboutVersionCardSubtitle",
                     defaultValue: "Marketing version with the manual Sparkle release build."
                 )
             ) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(
-                            String(localized: "settings.about.version.label", defaultValue: "Current release")
+                            String(localized: "AboutVersionLabel", defaultValue: "Current release")
                         )
                         .font(.callout.weight(.semibold))
                         if let buildDisplay = version.buildDisplay {
                             Text(
                                 String(
                                     format: String(
-                                        localized: "settings.about.version.build_format",
+                                        localized: "AboutVersionBuildFormat",
                                         defaultValue: "Build %@"
                                     ),
                                     buildDisplay
@@ -1808,7 +1808,7 @@ private struct AboutMeView: View {
                         Text(
                             String(
                                 format: String(
-                                    localized: "settings.about.version.bundle_format",
+                                    localized: "AboutVersionBundleFormat",
                                     defaultValue: "Sparkle bundle version %@"
                                 ),
                                 version.bundleVersion
@@ -1824,7 +1824,7 @@ private struct AboutMeView: View {
                 }
             }
 
-            SettingsCard(l("settings.about.card.title")) {
+            SettingsCard(l("AboutCardTitle")) {
                 HStack(alignment: .center, spacing: 16) {
                     ZStack {
                         Circle()
@@ -1839,9 +1839,9 @@ private struct AboutMeView: View {
                     .frame(width: 58, height: 58)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(l("settings.about.created_by"))
+                        Text(l("AboutCreatedByLabel"))
                             .font(.title3.weight(.semibold))
-                        Text(l("settings.about.copyright"))
+                        Text(l("AboutCopyrightLabel"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -1850,9 +1850,9 @@ private struct AboutMeView: View {
                 }
             }
 
-            SettingsCard(l("settings.about.support.title"), subtitle: l("settings.about.support.subtitle")) {
+            SettingsCard(l("AboutSupportTitle"), subtitle: l("AboutSupportSubtitle")) {
                 HStack(alignment: .center, spacing: 12) {
-                    Text(l("settings.about.support.body"))
+                    Text(l("AboutSupportBody"))
                         .foregroundStyle(.secondary)
                     Spacer()
                     HStack(spacing: 10) {
@@ -2129,7 +2129,7 @@ private struct KoFiButton: View {
         Link(destination: destination) {
             HStack(spacing: 8) {
                 Image(systemName: "cup.and.saucer.fill")
-                Text(l("settings.about.kofi_button"))
+                Text(l("AboutKofiButton"))
             }
             .font(.callout.weight(.semibold))
             .padding(.horizontal, 16)
@@ -2163,7 +2163,7 @@ private struct GitHubButton: View {
         Link(destination: destination) {
             HStack(spacing: 8) {
                 Image(systemName: "chevron.left.slash.chevron.right")
-                Text(l("settings.about.github_button"))
+                Text(l("AboutGithubButton"))
             }
             .font(.callout.weight(.semibold))
             .padding(.horizontal, 14)
