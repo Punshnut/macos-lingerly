@@ -36,7 +36,7 @@ struct OnboardingView: View {
 
             HStack {
                 if step > 0 {
-                    Button(String(localized: "NavBackButton")) {
+                    Button(String(localized: "OnboardingBackButton")) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             step -= 1
                         }
@@ -45,7 +45,7 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                Button(step == 1 ? String(localized: "NavFinishButton") : String(localized: "NavNextButton")) {
+                Button(step == 1 ? String(localized: "OnboardingFinishButton") : String(localized: "OnboardingNextButton")) {
                     handleNext()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -91,8 +91,8 @@ struct OnboardingView: View {
                 fullscreenBehaviorRaw = FullscreenBehavior.interrupt.rawValue
             }
 
-            Toggle(String(localized: "BreakPromptNotifOnlyTitle"), isOn: $alwaysNotificationOnly)
-            Text(String(localized: "BreakPromptNotifOnlySubtitle"))
+            Toggle(String(localized: "EnforcementNotifOnlyTitle"), isOn: $alwaysNotificationOnly)
+            Text(String(localized: "EnforcementNotifOnlySubtitle"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

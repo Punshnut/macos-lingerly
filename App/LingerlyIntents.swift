@@ -7,7 +7,7 @@ private enum LingerlyIntentError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .appUnavailable:
-            return String(localized: "Lingerly isn't available right now.")
+            return String(localized: "IntentsUnavailableText")
         }
     }
 }
@@ -77,7 +77,7 @@ struct SnoozeBreakIntent: AppIntent {
 }
 
 struct ResetTimerIntent: AppIntent {
-    static let title: LocalizedStringResource = "ActionsRestartTimerButton"
+    static let title: LocalizedStringResource = "ActionRestartTimerButton"
     static let description = IntentDescription("Resets the current timer cycle.")
     static let openAppWhenRun = true
 
@@ -136,7 +136,7 @@ struct LingerlyShortcutsProvider: AppShortcutsProvider {
                 "Reset \\(.applicationName) timer",
                 "Reset timer in \\(.applicationName)"
             ],
-            shortTitle: "ActionsRestartTimerButton",
+            shortTitle: "ActionRestartTimerButton",
             systemImageName: "arrow.counterclockwise.circle.fill"
         )
     }

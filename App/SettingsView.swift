@@ -321,7 +321,7 @@ private struct GeneralSettingsView: View {
                             Button(String(localized: "OverlayTitle")) {
                                 appState.takeBreakNow()
                             }
-                            Button(String(localized: "ActionsRestartTimerButton")) {
+                            Button(String(localized: "ActionRestartTimerButton")) {
                                 appState.resetTimer()
                             }
                         }
@@ -339,7 +339,7 @@ private struct GeneralSettingsView: View {
                     subtitle: l("OverviewUpdatesSubtitle")
                 ) {
                     let updaterAvailable = (NSApp.delegate as? AppDelegate)?.isUpdaterAvailable ?? false
-                    Button(String(localized: "AppMenuCheckUpdatesMenuItem")) {
+                    Button(String(localized: "AppMenuCheckUpdatesItem")) {
                         (NSApp.delegate as? AppDelegate)?.checkForUpdates(nil)
                     }
                     .buttonStyle(.bordered)
@@ -359,9 +359,9 @@ private struct GeneralSettingsView: View {
             let remaining = AppStateController.formattedCountdown(seconds)
             return (String(format: String(localized: "StatusOnBreakFormat"), remaining), false)
         case .breakDue:
-            return (String(localized: "StatusBreakDueNow"), true)
+            return (String(localized: "StatusBreakDueNowText"), true)
         case .paused:
-            return (String(localized: "StatusTimerPaused"), true)
+            return (String(localized: "StatusTimerPausedText"), true)
         case .muted(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             return (
@@ -369,12 +369,12 @@ private struct GeneralSettingsView: View {
                 false
             )
         case .cooldown:
-            return (String(localized: "StatusCooldown"), true)
+            return (String(localized: "StatusCooldownText"), true)
         case .snoozing(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             return (String(format: String(localized: "StatusSnoozingFormat"), remaining), false)
         case .inactive:
-            return (String(localized: "StatusTimerStopped"), true)
+            return (String(localized: "StatusTimerStoppedText"), true)
         }
     }
 }
@@ -737,8 +737,8 @@ private struct SmartPauseSettingsView: View {
             SettingsCard(l("EnforcementCardTitle"), subtitle: l("EnforcementCardSubtitle")) {
                 SettingsToggleRow(
                     icon: "bell.badge",
-                    title: l("BreakPromptNotifOnlyTitle"),
-                    subtitle: l("BreakPromptNotifOnlySubtitle"),
+                    title: l("EnforcementNotifOnlyTitle"),
+                    subtitle: l("EnforcementNotifOnlySubtitle"),
                     isOn: $alwaysNotificationOnly
                 )
             }
@@ -1737,7 +1737,7 @@ private struct AutomationSettingsView: View {
         ) {
             SettingsCard(l("AutomationCardTitle"), subtitle: l("AutomationCardSubtitle")) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(l("AutomationBody"))
+                    Text(l("AutomationBodyText"))
                         .foregroundStyle(.secondary)
 
                     VStack(alignment: .leading, spacing: 10) {

@@ -16,12 +16,12 @@ enum WellnessReminderText {
 
     /// Returns a complete reminder sentence for the provided wellness toggles.
     static func sentence(for state: WellnessReminderState) -> String {
-        let base = localized("WellnessReminderBase")
+        let base = localized("WellnessReminderBaseText")
         let clauses = [
-            Clause(key: "WellnessReminderHydration", isEnabled: state.hydrationEnabled),
-            Clause(key: "WellnessReminderFreshAir", isEnabled: state.freshAirEnabled),
-            Clause(key: "WellnessReminderStandUp", isEnabled: state.standUpEnabled),
-            Clause(key: "WellnessReminderWorkout", isEnabled: state.workoutEnabled)
+            Clause(key: "WellnessReminderHydrationText", isEnabled: state.hydrationEnabled),
+            Clause(key: "WellnessReminderFreshAirText", isEnabled: state.freshAirEnabled),
+            Clause(key: "WellnessReminderStandUpText", isEnabled: state.standUpEnabled),
+            Clause(key: "WellnessReminderWorkoutText", isEnabled: state.workoutEnabled)
         ]
         .compactMap { clause in
             clause.isEnabled ? localized(clause.key) : nil
@@ -71,9 +71,9 @@ enum WellnessReminderText {
     /// Chooses a localized lead-in phrase based on clause count.
     private static func selectLeadIn(for count: Int) -> String {
         let leadIns = [
-            "WellnessReminderLeadIn1",
-            "WellnessReminderLeadIn2",
-            "WellnessReminderLeadIn3"
+            "WellnessReminderLeadIn1Text",
+            "WellnessReminderLeadIn2Text",
+            "WellnessReminderLeadIn3Text"
         ]
         let index = max(count - 1, 0) % leadIns.count
         return localized(leadIns[index])
@@ -82,9 +82,9 @@ enum WellnessReminderText {
     /// Chooses a localized list joiner for the current clause count.
     private static func selectJoiner(for count: Int) -> String {
         let joiners = [
-            "WellnessReminderJoiner1",
-            "WellnessReminderJoiner2",
-            "WellnessReminderJoiner3"
+            "WellnessReminderJoiner1Text",
+            "WellnessReminderJoiner2Text",
+            "WellnessReminderJoiner3Text"
         ]
         let index = max(count - 2, 0) % joiners.count
         return localized(joiners[index])

@@ -3,16 +3,16 @@
 "StatusNextPauseFormat" = "Next break in %@";
 "StatusSnoozingFormat" = "Snoozing for %@";
 "StatusOnBreakFormat" = "On break: %@";
-"StatusBreakDueNow" = "A break is due now";
-"StatusTimerPaused" = "Timer is paused";
-"StatusTimerStopped" = "Reminders are off";
-"StatusCooldown" = "Cooldown";
+"StatusBreakDueNowText" = "A break is due now";
+"StatusTimerPausedText" = "Timer is paused";
+"StatusTimerStoppedText" = "Reminders are off";
+"StatusCooldownText" = "Cooldown";
 "StatusCooldownFormat" = "Cooldown %@";
-"ActionsRestartTimerButton" = "Restart Timer";
-"AppMenuSettingsMenuItem" = "Settings...";
-"AppMenuCheckUpdatesMenuItem" = "Check for Updates...";
-"AppMenuQuitMenuItem" = "Quit Lingerly";
-"AppMenuAboutTitle" = "About Lingerly";
+"ActionRestartTimerButton" = "Restart Timer";
+"AppMenuSettingsItem" = "Settings...";
+"AppMenuCheckUpdatesItem" = "Check for Updates...";
+"AppMenuQuitItem" = "Quit Lingerly";
+"AppMenuAboutItem" = "About Lingerly";
 "StatusMutedFormat" = "Muted %@";
 
 // Menu Panel
@@ -70,9 +70,9 @@
 // Onboarding
 "OnboardingWindowTitle" = "Welcome";
 "OnboardingWelcomeTitle" = "Find a rhythm that supports you";
-"NavBackButton" = "Back";
-"NavNextButton" = "Next";
-"NavFinishButton" = "Finish";
+"OnboardingBackButton" = "Back";
+"OnboardingNextButton" = "Next";
+"OnboardingFinishButton" = "Finish";
 "OnboardingLockScreenToggle" = "Allow lock screen";
 "OnboardingLockScreenDetail" = "Adds a Lock Screen button during breaks. It never runs automatically.";
 "OnboardingFullscreenTitle" = "Fullscreen apps";
@@ -250,7 +250,7 @@
 "AutomationSubtitle" = "Run Lingerly actions from Shortcuts automations.";
 "AutomationCardTitle" = "Shortcuts Actions";
 "AutomationCardSubtitle" = "Use these in automations or Siri.";
-"AutomationBody" = "Use Lingerly's built-in actions in your Shortcuts workflows.";
+"AutomationBodyText" = "Use Lingerly's built-in actions in your Shortcuts workflows.";
 "AutomationActionPauseLabel" = "Pause timer";
 "AutomationActionResumeLabel" = "Resume timer";
 "AutomationActionSkipLabel" = "Skip break";
@@ -259,11 +259,11 @@
 "AutomationFooterText" = "Find them in the Shortcuts app under Lingerly.";
 
 // Wellness Reminder Composition
-"WellnessReminderBase" = "A gentle pause for your eyes";
-"WellnessReminderHydration" = "have some water";
-"WellnessReminderFreshAir" = "open a window for fresh air";
-"WellnessReminderStandUp" = "stand up and move for a minute";
-"WellnessReminderWorkout" = "do a short workout or stretch set";
+"WellnessReminderBaseText" = "A gentle pause for your eyes";
+"WellnessReminderHydrationText" = "have some water";
+"WellnessReminderFreshAirText" = "open a window for fresh air";
+"WellnessReminderStandUpText" = "stand up and move for a minute";
+"WellnessReminderWorkoutText" = "do a short workout or stretch set";
 
 // Wellness Settings
 "WellnessFreshAirTitle" = "Fresh air reminder";
@@ -274,22 +274,22 @@
 "WellnessWorkoutSubtitle" = "Suggests a short workout or mobility set when it fits your day.";
 
 // Wellness Reminder Composition (linking phrases)
-"WellnessReminderLeadIn1" = "if you like, you could";
-"WellnessReminderLeadIn2" = "when you're ready, try to";
-"WellnessReminderLeadIn3" = "and if you can";
-"WellnessReminderJoiner1" = "and";
-"WellnessReminderJoiner2" = "as well as";
-"WellnessReminderJoiner3" = "and also";
+"WellnessReminderLeadIn1Text" = "if you like, you could";
+"WellnessReminderLeadIn2Text" = "when you're ready, try to";
+"WellnessReminderLeadIn3Text" = "and if you can";
+"WellnessReminderJoiner1Text" = "and";
+"WellnessReminderJoiner2Text" = "as well as";
+"WellnessReminderJoiner3Text" = "and also";
 
 "StatusTimerPausedAtFormat" = "Timer paused at %@";
 "SmartPauseMenuPrefixFormat" = "(%@) %@";
-"SmartPauseCodeBase" = "P";
-"SmartPauseCodeMedia" = "M";
-"SmartPauseCodeApps" = "X";
-"SmartPauseCodeSchedule" = "S";
+"SmartPauseCodeBaseValue" = "P";
+"SmartPauseCodeMediaValue" = "M";
+"SmartPauseCodeAppsValue" = "X";
+"SmartPauseCodeScheduleValue" = "S";
 
 "AppSettingsWindowTitle" = "Settings";
-"Lingerly isn't available right now." = "Lingerly isn't available right now.";
+"IntentsUnavailableText" = "Lingerly isn't available right now.";
 "ShortcutsTitle" = "Hotkeys";
 "ShortcutsSubtitle" = "Click a field to start listening, press Esc to cancel, and press Delete to clear a shortcut.";
 "ShortcutsCardTitle" = "Global Shortcuts";
@@ -304,8 +304,8 @@
 "ShortcutsSnoozePromptSubtitle" = "Snooze only when a break overlay or due notification is active.";
 "ShortcutsRecorderPlaceholder" = "Record Shortcut";
 "ShortcutsRecorderUnknownKeyFormat" = "Key %d";
-"BreakPromptNotifOnlyTitle" = "Always show notification only";
-"BreakPromptNotifOnlySubtitle" = "Never show the full-screen break overlay. Breaks are announced by notification only.";
+"EnforcementNotifOnlyTitle" = "Always show notification only";
+"EnforcementNotifOnlySubtitle" = "Never show the full-screen break overlay. Breaks are announced by notification only.";
 "ScheduleCardTitle" = "Schedule";
 "ScheduleCardSubtitle" = "Set when Lingerly should stay active or pause automatically.";
 "ScheduleToggleTitle" = "Use schedule";

@@ -129,7 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
 
         let settingsItem = NSMenuItem(
-            title: String(localized: "AppMenuSettingsMenuItem"),
+            title: String(localized: "AppMenuSettingsItem"),
             action: #selector(openSettings(_:)),
             keyEquivalent: settingsMenuShortcut
         )
@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.settingsItem = settingsItem
 
         let checkForUpdatesItem = NSMenuItem(
-            title: String(localized: "AppMenuCheckUpdatesMenuItem"),
+            title: String(localized: "AppMenuCheckUpdatesItem"),
             action: #selector(checkForUpdates(_:)),
             keyEquivalent: ""
         )
@@ -156,7 +156,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.checkForUpdatesItem = checkForUpdatesItem
 
         let aboutItem = NSMenuItem(
-            title: String(localized: "AppMenuAboutTitle", defaultValue: "About Lingerly"),
+            title: String(localized: "AppMenuAboutItem", defaultValue: "About Lingerly"),
             action: #selector(openAbout(_:)),
             keyEquivalent: ""
         )
@@ -169,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.aboutItem = aboutItem
 
         let quitItem = NSMenuItem(
-            title: String(localized: "AppMenuQuitMenuItem"),
+            title: String(localized: "AppMenuQuitItem"),
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: quitMenuShortcut
         )
@@ -727,7 +727,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func menuCountdownTitle(display: AppStateController.NextBreakDisplay) -> String {
         switch display {
         case .inactive:
-            return String(localized: "StatusTimerStopped")
+            return String(localized: "StatusTimerStoppedText")
         case .paused:
             let remaining = appState.pausedCountdownSeconds(at: Date()) ?? 0
             let countdown = AppStateController.formattedCountdown(remaining)
@@ -747,7 +747,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let remaining = AppStateController.formattedCountdown(seconds)
             return String(format: String(localized: "StatusSnoozingFormat"), remaining)
         case .breakDue:
-            return String(localized: "StatusBreakDueNow")
+            return String(localized: "StatusBreakDueNowText")
         case .breakActive(let seconds):
             let remaining = AppStateController.formattedCountdown(seconds)
             return String(format: String(localized: "StatusOnBreakFormat"), remaining)
