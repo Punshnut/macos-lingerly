@@ -5,7 +5,7 @@ Lingerly is a calm macOS menu bar app for people who want gentle reminders witho
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-native-000000?style=flat&logo=apple" alt="macOS native">
   <img src="https://img.shields.io/badge/Stage-Beta-yellow" alt="Stage Beta">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT">
+  <img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License: AGPL-3.0">
 </p>
 
 <p align="center">
@@ -61,7 +61,7 @@ Lingerly is a calm macOS menu bar app for people who want gentle reminders witho
 - **Clear status icon** - Quiet, simple state feedback in the menu bar.
 - **Presets and custom setups** - Start simple, then adjust.
 - **Private by default** - No tracking, no accounts, stats stay on-device.
-- **Native and open** - Universal for Intel and Apple Silicon, and MIT licensed.
+- **Native and open** - Universal for Intel and Apple Silicon, and AGPL-3.0 licensed.
 
 ## Timing that fits around your work
 
@@ -101,7 +101,7 @@ Lingerly is a calm macOS menu bar app for people who want gentle reminders witho
 
 ## License & support
 
-- **License:** MIT. Use it anywhere; just keep the notice.
+- **License:** AGPL-3.0, effective 2026-09-11. If you run a modified version of Lingerly as a network service, you must make your modified source available to its users. Releases published before this date remain available under the original MIT license.
 
 ## Roadmap
 
